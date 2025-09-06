@@ -344,6 +344,20 @@
 
   <footer>© <span id="year"></span> Artemis Skys. All rights reserved.</footer>
 
+  
+  <!-- ===== Fallback auth openers (run before Firebase JS) ===== -->
+  <script>
+    // Ensure the header "Log in" and "Sign up" buttons always open the auth panel,
+    // even if the Firebase module hasn't finished loading yet.
+    (function(){
+      const loginBtn = document.getElementById('btn-login');
+      const signupBtn = document.getElementById('btn-signup');
+      function openAuth(){ try{ window.showSection && window.showSection('auth'); setTimeout(()=>{ document.getElementById('login-email')?.focus(); }, 0); }catch{} }
+      if (loginBtn) loginBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
+      if (signupBtn) signupBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
+    })();
+  </script>
+
   <!-- ========= App utilities (inventory local) ========= -->
   <script>
     const DEFAULT_BG = 'https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg';
