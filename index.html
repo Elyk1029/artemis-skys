@@ -21,17 +21,13 @@
     html,body{height:100%}
     body{
       margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--text);
-      /* Full lunar surface background (dimmed) */
       background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg') center/cover no-repeat fixed;
       background-size: 110% auto; /* slightly zoomed out */
     }
-
-    /* Background layer element to ensure coverage on mobile too */
     .sky{position:fixed; inset:0; z-index:-1; pointer-events:none;
       background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg') center/cover no-repeat fixed;
       filter: brightness(.55);
     }
-
     a{color:var(--accent)}
     header{position:sticky; top:0; z-index:20; background:rgba(34,34,34,.88); backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.08)}
     .wrap{max-width:1100px; margin:0 auto; padding:16px}
@@ -219,7 +215,10 @@
           <h3>Log in</h3>
           <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
           <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
-          <div class="row right"><button class="btn" id="do-login">Enter</button></div>
+          <div class="row right" style="gap:10px; align-items:center">
+            <button class="btn" id="do-login">Enter</button>
+            <a id="forgot-pass" href="javascript:void(0)" class="muted" style="text-decoration:underline">Forgot password?</a>
+          </div>
           <p class="notice">No account? Use <em>Sign up</em> to create an account. We’ll email you a verification link.</p>
         </div>
         <div class="panel">
@@ -351,377 +350,341 @@
     © <span id="year"></span> Artemis Skys. All rights reserved.
   </footer>
 
-  <script>
-  // ========== Utilities ==========
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => [...document.querySelectorAll(sel)];
-  const fmtDate = d => new Date(d).toLocaleString([], {year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
-  const todayISO = () => new Date().toISOString().slice(0,10);
-  const weekStartISO = () => {
-    const d = new Date();
-    const day = d.getDay(); // 0 Sun
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
-    const monday = new Date(d.setDate(diff));
-    return monday.toISOString().slice(0,10);
-  }
+  <!-- ===== APP + AUTH (single module, consistent SDK versions) ===== -->
+  <script type="module">
+    /* ---------- Utilities & Local App (schedule/inventory) ---------- */
+    const $  = sel => document.querySelector(sel);
+    const $$ = sel => [...document.querySelectorAll(sel)];
+    const fmtDate = d => new Date(d).toLocaleString([], {year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const weekStartISO = () => {
+      const d = new Date();
+      const day = d.getDay(); // 0 Sun
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+      const monday = new Date(d.setDate(diff));
+      return monday.toISOString().slice(0,10);
+    };
+    const hash = async (str) => {
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+    };
+    const store = {
+      get(k, fallback){ try{ return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(fallback)); }catch{ return fallback } },
+      set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
+    };
+    const K = { users: 'as_users', session: 'as_session', employees: 'as_emps', shifts: 'as_shifts', inv: 'as_inv', log: 'as_inv_log' };
 
-  const hash = async (str) => {
-    const enc = new TextEncoder().encode(str);
-    const buf = await crypto.subtle.digest('SHA-256', enc);
-    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
-  };
-
-  const store = {
-    get(k, fallback){ try{ return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(fallback)); }catch{ return fallback } },
-    set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
-  };
-
-  const K = { users: 'as_users', session: 'as_session', employees: 'as_emps', shifts: 'as_shifts', inv: 'as_inv', log: 'as_inv_log' };
-
-  // ========== Section Nav ==========
-  function showSection(id){
-    ['home','about','more','host','auth','app'].forEach(s=>{
-      const el = document.getElementById(s);
-      if(!el) return; el.classList.toggle('hidden', s!==id);
-    });
-    $$('nav a[data-nav]').forEach(a=>{
-      const tgt = a.getAttribute('href').replace('#','');
-      a.classList.toggle('active', tgt===id);
-    })
-  }
-
-  $('#go-home').onclick = ()=>showSection('home');
-  $$('#cta-learn,[data-nav="#about"]').forEach(el=>el.onclick = ()=>showSection('about'));
-  $$('#cta-get-started,[data-nav="#host"]').forEach(el=>el.onclick = ()=>showSection('host'));
-  $$('a[data-nav]').forEach(a=>a.onclick = (e)=>{ e.preventDefault(); showSection(a.getAttribute('href').substring(1)) });
-
-  // ========== Auth ==========
-  const refreshAuthUI = () => {
-    const session = store.get(K.session, null);
-    $('#auth-buttons').classList.toggle('hidden', !!session);
-    $('#user-badge').classList.toggle('hidden', !session);
-    if(session){
-      $('#whoami').textContent = session.email;
-      $('#session-user').textContent = session.email;
-    }
-  };
-
-  const gotoApp = () => { showSection('app'); refreshWeek(); refreshEmp(); refreshShiftOptions(); refreshInv(); refreshLog(); };
-
-  $('#btn-login').onclick = ()=>{ showSection('auth'); $('#login-email').focus(); };
-  $('#btn-signup').onclick = ()=>{ showSection('auth'); $('#su-name').focus(); };
-
-  $('#do-signup').onclick = async ()=>{
-    const name = $('#su-name').value.trim();
-    const email = $('#su-email').value.trim().toLowerCase();
-    const pass = $('#su-pass').value;
-    if(!name || !email || pass.length<6) return alert('Please fill all fields (password ≥ 6).');
-    const users = store.get(K.users, []);
-    if(users.find(u=>u.email===email)) return alert('Email already exists.');
-    users.push({name, email, pass: await hash(pass)});
-    store.set(K.users, users);
-    alert('Account created. You can now log in.');
-  };
-
-  $('#do-login').onclick = async ()=>{
-    const email = $('#login-email').value.trim().toLowerCase();
-    const pass = $('#login-pass').value;
-    const users = store.get(K.users, []);
-    const hp = await hash(pass);
-    const user = users.find(u=>u.email===email && u.pass===hp);
-    if(!user){
-      alert('Invalid credentials or user not found. Please sign up first.');
-      return;
-    }
-    store.set(K.session, {email});
-    refreshAuthUI();
-    gotoApp();
-  };
-
-  $('#btn-logout').onclick = ()=>{
-    localStorage.removeItem(K.session);
-    refreshAuthUI();
-    showSection('home');
-  };
-
-  // ========== App Tabs ==========
-  $$('#app-tabs .tab').forEach(t=>t.onclick = ()=>{
-    $$('#app-tabs .tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    ['schedule','inventory','data'].forEach(id=>{
-      const on = t.dataset.tab===id;
-      $('#tab-'+id).classList.toggle('hidden', !on);
-    });
-  });
-
-  // ========== Employees ==========
-  function refreshEmp(){
-    const emps = store.get(K.employees, []);
-    const tbody = $('#emp-table tbody');
-    tbody.innerHTML = '';
-    emps.forEach((e, i)=>{
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${e}</td><td><button class="btn ghost small" data-del-emp="${i}">Remove</button></td>`;
-      tbody.appendChild(tr);
-    });
-    tbody.querySelectorAll('[data-del-emp]').forEach(btn=>{
-      btn.onclick = ()=>{
-        const idx = +btn.dataset.delEmp; const list = store.get(K.employees, []);
-        list.splice(idx,1); store.set(K.employees, list); refreshEmp(); refreshShiftOptions(); refreshWeek();
-      };
-    });
-  }
-  $('#add-emp').onclick = ()=>{
-    const name = $('#emp-name').value.trim();
-    if(!name) return;
-    const list = store.get(K.employees, []);
-    list.push(name); store.set(K.employees, list); $('#emp-name').value=''; refreshEmp(); refreshShiftOptions(); refreshWeek();
-  };
-
-  function refreshShiftOptions(){
-    const sel = $('#shift-emp'); sel.innerHTML='';
-    store.get(K.employees, []).forEach(n=>{
-      const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
-    });
-  }
-
-  // ========== Shifts ==========
-  $('#add-shift').onclick = ()=>{
-    const date=$('#shift-date').value||todayISO();
-    const emp=$('#shift-emp').value; const start=$('#shift-start').value; const end=$('#shift-end').value;
-    if(!emp||!start||!end) return alert('Pick employee, start and end time.');
-    const shifts=store.get(K.shifts, []); shifts.push({date,emp,start,end}); store.set(K.shifts, shifts);
-    refreshWeek(); alert('Shift added.');
-  };
-
-  $('#refresh-week').onclick = refreshWeek;
-  $('#week-start').value = weekStartISO();
-
-  function refreshWeek(){
-    const start = new Date($('#week-start').value || weekStartISO());
-    const days = [...Array(7)].map((_,i)=>{
-      const d=new Date(start); d.setDate(d.getDate()+i); return d;
-    });
-    // header
-    const head = $('#week-head'); head.innerHTML='';
-    const htr = document.createElement('tr');
-    htr.innerHTML = '<th>Employee</th>' + days.map(d=>`<th>${d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})}</th>`).join('');
-    head.appendChild(htr);
-
-    // body
-    const body = $('#week-body'); body.innerHTML='';
-    const emps = store.get(K.employees, []);
-    const shifts = store.get(K.shifts, []);
-    emps.forEach(emp=>{
-      const tr = document.createElement('tr');
-      const tds = days.map(d=>{
-        const iso = d.toISOString().slice(0,10);
-        const list = shifts.filter(s=>s.emp===emp && s.date===iso);
-        return `<td>${list.map(s=>`${s.start}–${s.end}`).join('<br>')}</td>`;
+    // Section Nav
+    function showSection(id){
+      ['home','about','more','host','auth','app'].forEach(s=>{
+        const el = document.getElementById(s);
+        if(!el) return; el.classList.toggle('hidden', s!==id);
       });
-      tr.innerHTML = `<td><strong>${emp}</strong></td>` + tds.join('');
-      body.appendChild(tr);
+      $$('nav a[data-nav]').forEach(a=>{
+        const tgt = a.getAttribute('href').replace('#','');
+        a.classList.toggle('active', tgt===id);
+      });
+    }
+    window.showSection = showSection; // used in auth handlers
+
+    $('#go-home').onclick = ()=>showSection('home');
+    $('#cta-learn').onclick = ()=>showSection('about');
+    $('#cta-get-started').onclick = ()=>showSection('host');
+    $$('a[data-nav]').forEach(a=>a.onclick = (e)=>{ e.preventDefault(); showSection(a.getAttribute('href').substring(1)) });
+
+    // App tabs
+    $$('#app-tabs .tab').forEach(t=>t.onclick = ()=>{
+      $$('#app-tabs .tab').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      ['schedule','inventory','data'].forEach(id=>{
+        const on = t.dataset.tab===id;
+        $('#tab-'+id).classList.toggle('hidden', !on);
+      });
     });
-  }
 
-  // ========== Inventory ==========
-  function refreshInv(){
-    const inv = store.get(K.inv, []);
-    const tbody = $('#inv-table tbody'); tbody.innerHTML='';
-    inv.forEach((it, i)=>{
-      const val = (it.qty||0) * (it.cost||0);
-      const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${it.name}</td><td>${it.sku}</td><td>${it.qty}</td><td>${(it.cost??0).toFixed(2)}</td><td>${val.toFixed(2)}</td>
-      <td>
-        <button class=\"btn ghost small\" data-edit=\"${i}\">Edit</button>
-        <button class=\"btn secondary small\" data-del=\"${i}\">Delete</button>
-      </td>`;
-      tbody.appendChild(tr);
-    });
-    tbody.querySelectorAll('[data-del]').forEach(btn=>{
-      btn.onclick = ()=>{ const inv=store.get(K.inv, []); inv.splice(+btn.dataset.del,1); store.set(K.inv, inv); refreshInv(); };
-    });
-    tbody.querySelectorAll('[data-edit]').forEach(btn=>{
-      btn.onclick = ()=>{ const it=store.get(K.inv, [])[+btn.dataset.edit];
-        $('#inv-name').value=it.name; $('#inv-sku').value=it.sku; $('#inv-qty').value=it.qty; $('#inv-cost').value=it.cost; };
-    });
-  }
+    // Employees
+    function refreshEmp(){
+      const emps = store.get(K.employees, []);
+      const tbody = $('#emp-table tbody');
+      tbody.innerHTML = '';
+      emps.forEach((e, i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${e}</td><td><button class="btn ghost small" data-del-emp="${i}">Remove</button></td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('[data-del-emp]').forEach(btn=>{
+        btn.onclick = ()=>{
+          const idx = +btn.dataset.delEmp; const list = store.get(K.employees, []);
+          list.splice(idx,1); store.set(K.employees, list); refreshEmp(); refreshShiftOptions(); refreshWeek();
+        };
+      });
+    }
+    $('#add-emp').onclick = ()=>{
+      const name = $('#emp-name').value.trim();
+      if(!name) return;
+      const list = store.get(K.employees, []);
+      list.push(name); store.set(K.employees, list); $('#emp-name').value=''; refreshEmp(); refreshShiftOptions(); refreshWeek();
+    };
+    function refreshShiftOptions(){
+      const sel = $('#shift-emp'); sel.innerHTML='';
+      store.get(K.employees, []).forEach(n=>{
+        const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);
+      });
+    }
 
-  function logLine(sku, delta, note=''){ const log = store.get(K.log, []); log.unshift({ts:Date.now(), sku, delta, note}); store.set(K.log, log); refreshLog(); }
-  function refreshLog(){
-    const tbody = $('#log-table tbody'); tbody.innerHTML='';
-    store.get(K.log, []).forEach(row=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.sku}</td><td>${row.delta>0?`+${row.delta}`:row.delta}</td><td>${row.note||''}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
+    // Shifts
+    $('#add-shift').onclick = ()=>{
+      const date=$('#shift-date').value||todayISO();
+      const emp=$('#shift-emp').value; const start=$('#shift-start').value; const end=$('#shift-end').value;
+      if(!emp||!start||!end) return alert('Pick employee, start and end time.');
+      const shifts=store.get(K.shifts, []); shifts.push({date,emp,start,end}); store.set(K.shifts, shifts);
+      refreshWeek(); alert('Shift added.');
+    };
+    $('#refresh-week').onclick = refreshWeek;
+    $('#week-start').value = weekStartISO();
 
-  $('#save-item').onclick = ()=>{
-    const name=$('#inv-name').value.trim(); const sku=$('#inv-sku').value.trim(); const qty=+($('#inv-qty').value||0); const cost=parseFloat($('#inv-cost').value||'0');
-    if(!name||!sku) return alert('Name and SKU required.');
-    const inv=store.get(K.inv, []);
-    const i=inv.findIndex(x=>x.sku===sku);
-    if(i>=0){ inv[i]={...inv[i], name, qty, cost}; } else { inv.push({name, sku, qty, cost}); }
-    store.set(K.inv, inv);
-    logLine(sku, 0, 'Saved item');
-    $('#inv-name').value=$('#inv-sku').value=$('#inv-qty').value=$('#inv-cost').value='';
-    refreshInv();
-  };
+    function refreshWeek(){
+      const start = new Date($('#week-start').value || weekStartISO());
+      const days = [...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return d; });
+      const head = $('#week-head'); head.innerHTML='';
+      const htr = document.createElement('tr');
+      htr.innerHTML = '<th>Employee</th>' + days.map(d=>`<th>${d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})}</th>`).join('');
+      head.appendChild(htr);
+      const body = $('#week-body'); body.innerHTML='';
+      const emps = store.get(K.employees, []);
+      const shifts = store.get(K.shifts, []);
+      emps.forEach(emp=>{
+        const tr = document.createElement('tr');
+        const tds = days.map(d=>{
+          const iso = d.toISOString().slice(0,10);
+          const list = shifts.filter(s=>s.emp===emp && s.date===iso);
+          return `<td>${list.map(s=>`${s.start}–${s.end}`).join('<br>')}</td>`;
+        });
+        tr.innerHTML = `<td><strong>${emp}</strong></td>` + tds.join('');
+        body.appendChild(tr);
+      });
+    }
 
-  function adjust(sgn){
-    const sku=$('#adj-sku').value.trim(); const delta= Math.abs(+($('#adj-delta').value||0))*sgn;
-    if(!sku || !delta) return alert('Enter SKU and change amount.');
-    const inv=store.get(K.inv, []); const i = inv.findIndex(x=>x.sku===sku);
-    if(i<0) return alert('SKU not found.');
-    inv[i].qty = (inv[i].qty||0) + delta; store.set(K.inv, inv);
-    logLine(sku, delta, sgn>0? 'Receive' : 'Issue');
-    refreshInv();
-  }
-  $('#receive').onclick = ()=>adjust(+1);
-  $('#issue').onclick = ()=>adjust(-1);
+    // Inventory
+    function refreshInv(){
+      const inv = store.get(K.inv, []);
+      const tbody = $('#inv-table tbody'); tbody.innerHTML='';
+      inv.forEach((it, i)=>{
+        const val = (it.qty||0) * (it.cost||0);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${it.name}</td><td>${it.sku}</td><td>${it.qty}</td><td>${(it.cost??0).toFixed(2)}</td><td>${val.toFixed(2)}</td>
+        <td>
+          <button class="btn ghost small" data-edit="${i}">Edit</button>
+          <button class="btn secondary small" data-del="${i}">Delete</button>
+        </td>`;
+        tbody.appendChild(tr);
+      });
+      tbody.querySelectorAll('[data-del]').forEach(btn=>{
+        btn.onclick = ()=>{ const inv=store.get(K.inv, []); inv.splice(+btn.dataset.del,1); store.set(K.inv, inv); refreshInv(); };
+      });
+      tbody.querySelectorAll('[data-edit]').forEach(btn=>{
+        btn.onclick = ()=>{ const it=store.get(K.inv, [])[+btn.dataset.edit];
+          $('#inv-name').value=it.name; $('#inv-sku').value=it.sku; $('#inv-qty').value=it.qty; $('#inv-cost').value=it.cost; };
+      });
+    }
+    $('#save-item').onclick = ()=>{
+      const name=$('#inv-name').value.trim(); const sku=$('#inv-sku').value.trim(); const qty=+($('#inv-qty').value||0); const cost=parseFloat($('#inv-cost').value||'0');
+      if(!name||!sku) return alert('Name and SKU required.');
+      const inv=store.get(K.inv, []);
+      const i=inv.findIndex(x=>x.sku===sku);
+      if(i>=0){ inv[i]={...inv[i], name, qty, cost}; } else { inv.push({name, sku, qty, cost}); }
+      store.set(K.inv, inv);
+      logLine(sku, 0, 'Saved item');
+      $('#inv-name').value=$('#inv-sku').value=$('#inv-qty').value=$('#inv-cost').value='';
+      refreshInv();
+    };
+    function adjust(sgn){
+      const sku=$('#adj-sku').value.trim(); const delta= Math.abs(+($('#adj-delta').value||0))*sgn;
+      if(!sku || !delta) return alert('Enter SKU and change amount.');
+      const inv=store.get(K.inv, []); const i = inv.findIndex(x=>x.sku===sku);
+      if(i<0) return alert('SKU not found.');
+      inv[i].qty = (inv[i].qty||0) + delta; store.set(K.inv, inv);
+      logLine(sku, delta, sgn>0? 'Receive' : 'Issue');
+      refreshInv();
+    }
+    $('#receive').onclick = ()=>adjust(+1);
+    $('#issue').onclick  = ()=>adjust(-1);
 
-  // ========== Data Export / Import ==========
-  $('#export-json').onclick = ()=>{
-    const blob = new Blob([JSON.stringify({
-      users: store.get(K.users, []),
-      employees: store.get(K.employees, []),
-      shifts: store.get(K.shifts, []),
-      inv: store.get(K.inv, []),
-      log: store.get(K.log, [])
-    }, null, 2)], {type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='artemis-skys-data.json'; a.click();
-  };
+    // Log + Data
+    function logLine(sku, delta, note=''){ const log = store.get(K.log, []); log.unshift({ts:Date.now(), sku, delta, note}); store.set(K.log, log); refreshLog(); }
+    function refreshLog(){
+      const tbody = $('#log-table tbody'); tbody.innerHTML='';
+      store.get(K.log, []).forEach(row=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.sku}</td><td>${row.delta>0?`+${row.delta}`:row.delta}</td><td>${row.note||''}</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+    $('#export-inv').onclick = ()=>{
+      const rows = [['Name','SKU','Qty','Unit Cost','Value']];
+      store.get(K.inv, []).forEach(it=> rows.push([it.name, it.sku, it.qty, (it.cost??0).toFixed(2), ((it.qty||0)*(it.cost||0)).toFixed(2)]));
+      const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='inventory.csv'; a.click();
+    };
+    $('#export-json').onclick = ()=>{
+      const blob = new Blob([JSON.stringify({
+        users: store.get(K.users, []),
+        employees: store.get(K.employees, []),
+        shifts: store.get(K.shifts, []),
+        inv: store.get(K.inv, []),
+        log: store.get(K.log, [])
+      }, null, 2)], {type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='artemis-skys-data.json'; a.click();
+    };
+    $('#import-json').onchange = (e)=>{
+      const file = e.target.files[0]; if(!file) return;
+      const r = new FileReader(); r.onload = ()=>{
+        try{
+          const data = JSON.parse(r.result);
+          if(data.users)      store.set(K.users, data.users);
+          if(data.employees)  store.set(K.employees, data.employees);
+          if(data.shifts)     store.set(K.shifts, data.shifts);
+          if(data.inv)        store.set(K.inv, data.inv);
+          if(data.log)        store.set(K.log, data.log);
+          alert('Data imported.'); refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
+        }catch(err){ alert('Invalid JSON.'); }
+      }; r.readAsText(file);
+    };
+    $('#wipe').onclick = ()=>{
+      if(!confirm('Wipe all Artemis Skys data from this browser?')) return;
+      [K.users,K.session,K.employees,K.shifts,K.inv,K.log].forEach(k=>localStorage.removeItem(k));
+      location.reload();
+    };
 
-  $('#import-json').onchange = (e)=>{
-    const file = e.target.files[0]; if(!file) return;
-    const r = new FileReader(); r.onload = ()=>{
+    document.getElementById('year').textContent = new Date().getFullYear();
+    showSection('home'); // initial
+
+    /* ---------- Firebase (Email/Password + verify + forgot) ---------- */
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+    import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
+    import {
+      getAuth,
+      createUserWithEmailAndPassword,
+      signInWithEmailAndPassword,
+      sendEmailVerification,
+      sendPasswordResetEmail,
+      applyActionCode,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+    // Your Firebase config (public web keys are safe to expose)
+    const firebaseConfig = {
+      apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
+      authDomain: "artemisskys-81c8d.firebaseapp.com",
+      projectId: "artemisskys-81c8d",
+      storageBucket: "artemisskys-81c8d.firebasestorage.app",
+      messagingSenderId: "1048827230936",
+      appId: "1:1048827230936:web:b0e70cce57c867a23635ad",
+      measurementId: "G-DY343FNTFS"
+    };
+
+    const appFB   = initializeApp(firebaseConfig);
+    getAnalytics(appFB);
+    const auth = getAuth(appFB);
+
+    // Auth UI helpers
+    function refreshAuthUI(){
+      const u = auth.currentUser;
+      const authed = !!u && !!u.email;
+      $('#auth-buttons').classList.toggle('hidden', authed);
+      $('#user-badge').classList.toggle('hidden', !authed);
+      if(authed){
+        $('#whoami').textContent = u.email + (u.emailVerified ? '' : ' (unverified)');
+        $('#session-user').textContent = u.email;
+      }
+    }
+    window.refreshAuthUI = refreshAuthUI; // used by listeners
+
+    const btnLogin  = $('#btn-login');
+    const btnSignup = $('#btn-signup');
+    const doLogin   = $('#do-login');
+    const doSignup  = $('#do-signup');
+    const btnLogout = $('#btn-logout');
+    const forgotBtn = $('#forgot-pass');
+
+    btnLogin.onclick  = ()=>{ showSection('auth'); $('#login-email').focus(); };
+    btnSignup.onclick = ()=>{ showSection('auth'); $('#su-name').focus(); };
+
+    // Sign up (send verify email)
+    doSignup.onclick = async ()=>{
+      const name = $('#su-name').value.trim();
+      const email= $('#su-email').value.trim();
+      const pass = $('#su-pass').value;
+      if(!name || !email || pass.length<6){ alert('Please fill all fields (password ≥ 6).'); return; }
       try{
-        const data = JSON.parse(r.result);
-        if(data.users) store.set(K.users, data.users);
-        if(data.employees) store.set(K.employees, data.employees);
-        if(data.shifts) store.set(K.shifts, data.shifts);
-        if(data.inv) store.set(K.inv, data.inv);
-        if(data.log) store.set(K.log, data.log);
-        alert('Data imported.'); refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
-      }catch(err){ alert('Invalid JSON.'); }
-    }; r.readAsText(file);
-  };
+        const { user } = await createUserWithEmailAndPassword(auth, email, pass);
+        await sendEmailVerification(user, { url: location.origin + location.pathname });
+        alert('Account created. Check your email for a verification link.');
+      }catch(e){
+        console.error(e); alert(e?.message || 'Sign up failed');
+      }
+    };
 
-  $('#export-inv').onclick = ()=>{
-    const rows = [['Name','SKU','Qty','Unit Cost','Value']];
-    store.get(K.inv, []).forEach(it=> rows.push([it.name, it.sku, it.qty, (it.cost??0).toFixed(2), ((it.qty||0)*(it.cost||0)).toFixed(2)]));
-    const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], {type:'text/csv'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='inventory.csv'; a.click();
-  };
+    // Login (require verified)
+    doLogin.onclick = async ()=>{
+      const email= $('#login-email').value.trim();
+      const pass = $('#login-pass').value;
+      try{
+        const { user } = await signInWithEmailAndPassword(auth, email, pass);
+        if(!user.emailVerified){ alert('Please verify your email first.'); return; }
+        refreshAuthUI();
+        showSection('app');
+        refreshWeek(); refreshEmp(); refreshShiftOptions(); refreshInv(); refreshLog();
+      }catch(e){
+        console.error(e); alert(e?.message || 'Login failed');
+      }
+    };
 
-  $('#wipe').onclick = ()=>{
-    if(!confirm('Wipe all Artemis Skys data from this browser?')) return;
-    [K.users,K.session,K.employees,K.shifts,K.inv,K.log].forEach(k=>localStorage.removeItem(k));
-    location.reload();
-  };
+    // Forgot password
+    forgotBtn.onclick = async ()=>{
+      let email = $('#login-email').value.trim();
+      if(!email) email = prompt('Enter the email on your account:')?.trim() || '';
+      if(!email) return;
+      try{
+        await sendPasswordResetEmail(auth, email, { url: location.origin + location.pathname });
+        alert(`Password reset email sent to ${email}. Check your inbox (and spam).`);
+      }catch(e){
+        console.error(e);
+        const msg = (e?.code==='auth/user-not-found')
+          ? 'No account with that email.'
+          : (e?.message || 'Could not send reset email.');
+        alert(msg);
+      }
+    };
 
-  // ========== Init ==========
-  document.getElementById('year').textContent = new Date().getFullYear();
-  refreshAuthUI();
-  showSection('home');
+    // Logout
+    btnLogout.onclick = async ()=>{ await signOut(auth); refreshAuthUI(); showSection('home'); };
+
+    // Handle verifyEmail action links (when user opens this page from email)
+    const q = new URLSearchParams(location.search);
+    (async ()=>{
+      const mode   = q.get('mode');
+      const oobCode= q.get('oobCode');
+      if(mode==='verifyEmail' && oobCode){
+        try{
+          await applyActionCode(auth, oobCode);
+          alert('Email verified! You can now log in.');
+          history.replaceState({}, '', location.pathname);
+        }catch(e){
+          console.error(e); alert('Verification link is invalid or expired.');
+        }
+      }
+    })();
+
+    // React to auth state changes
+    onAuthStateChanged(auth, ()=> refreshAuthUI());
+
+    // Prime UI
+    refreshAuthUI();
+    refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
   </script>
-
-<!-- Firebase Auth integration -->
-
-<!-- Firebase: magic-link (passwordless) auth -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getAuth,
-    sendSignInLinkToEmail,
-    isSignInWithEmailLink,
-    signInWithEmailLink,
-    onAuthStateChanged,
-    signOut
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-  // Your Firebase project config
-  const firebaseConfig = {
-    apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
-    authDomain: "artemisskys-81c8d.firebaseapp.com",
-    projectId: "artemisskys-81c8d",
-    storageBucket: "artemisskys-81c8d.firebasestorage.app",
-    messagingSenderId: "1048827230936",
-    appId: "1:1048827230936:web:b0e70cce57c867a23635ad",
-    measurementId: "G-DY343FNTFS"
-  };
-
-  // Init
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-
-  // Where the email link should return to (this page)
-  const actionCodeSettings = {
-    url: location.origin + location.pathname,
-    handleCodeInApp: true
-    // dynamicLinkDomain: "YOUR_DYNAMIC_LINK_DOMAIN" // only if you set one in Firebase
-  };
-
-  // If the page opened from an email link, complete sign-in
-  if (isSignInWithEmailLink(auth, location.href)) {
-    let email = localStorage.getItem("as_last_email");
-    if (!email) email = prompt("Confirm your email to finish sign-in:");
-    try {
-      await signInWithEmailLink(auth, email, location.href);
-      localStorage.removeItem("as_last_email");
-      history.replaceState({}, "", location.pathname); // clean URL
-      alert("Signed in!");
-      window.gotoApp && window.gotoApp();
-    } catch (e) {
-      console.error(e);
-      alert("That sign-in link is invalid or expired.");
-    }
-  }
-
-  // Wire buttons to show the auth panel
-  document.getElementById("btn-login").onclick =
-  document.getElementById("btn-signup").onclick = () => {
-    window.showSection && window.showSection("auth");
-  };
-
-  // Send magic link for both Sign up and Log in
-  document.getElementById("do-login").onclick =
-  document.getElementById("do-signup").onclick = async () => {
-    const email =
-      (document.getElementById("login-email").value ||
-       document.getElementById("su-email").value).trim();
-    if (!email) return alert("Enter your email first.");
-    try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      localStorage.setItem("as_last_email", email);
-      alert(`We sent a sign-in link to ${email}. Check your inbox.`);
-    } catch (e) {
-      console.error(e);
-      alert(e.message || "Failed to send sign-in link.");
-    }
-  };
-
-  // Logout
-  document.getElementById("btn-logout").onclick = async () => {
-    await signOut(auth);
-    window.showSection && window.showSection("home");
-  };
-
-  // Update header UI on auth changes
-  onAuthStateChanged(auth, (user) => {
-    const authed = !!user;
-    document.getElementById("auth-buttons").classList.toggle("hidden", authed);
-    document.getElementById("user-badge").classList.toggle("hidden", !authed);
-    if (authed) {
-      document.getElementById("whoami").textContent = user.email;
-      document.getElementById("session-user").textContent = user.email;
-      // enter app if not already there
-      window.gotoApp && window.gotoApp();
-    }
-  });
-</script>
 </body>
 </html>
-
