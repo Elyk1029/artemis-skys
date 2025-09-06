@@ -630,17 +630,19 @@
 
 <!-- Firebase Auth integration -->
 
-<!-- Firebase Auth: passwordless magic-link flow -->
+<!-- Firebase: magic-link (passwordless) auth -->
 <script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js';
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getAuth, onAuthStateChanged, signOut,
-    sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink
-  } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js';
-  // (optional) analytics if you want it
-  // import { getAnalytics } from 'https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js';
+    getAuth,
+    sendSignInLinkToEmail,
+    isSignInWithEmailLink,
+    signInWithEmailLink,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-  // Your Firebase config (from Project settings ➜ Your apps ➜ Web ➜ CDN)
+  // Your Firebase project config
   const firebaseConfig = {
     apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
     authDomain: "artemisskys-81c8d.firebaseapp.com",
@@ -651,84 +653,72 @@
     measurementId: "G-DY343FNTFS"
   };
 
+  // Init
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  // const analytics = getAnalytics(app);
 
-  // Where users land after clicking the email link
+  // Where the email link should return to (this page)
   const actionCodeSettings = {
-    url: window.location.origin + '/', // works for both web.app and your custom domain
+    url: location.origin + location.pathname,
     handleCodeInApp: true
-    // dynamicLinkDomain: 'artemisskys.page.link' // optional if you set up Dynamic Links
+    // dynamicLinkDomain: "YOUR_DYNAMIC_LINK_DOMAIN" // only if you set one in Firebase
   };
 
-  // Replace old localStorage login with magic-link: send link on Sign up or Log in
-  const btnLogin = document.getElementById('do-login');
-  const btnSignup = document.getElementById('do-signup');
-  const btnLogout = document.getElementById('btn-logout');
+  // If the page opened from an email link, complete sign-in
+  if (isSignInWithEmailLink(auth, location.href)) {
+    let email = localStorage.getItem("as_last_email");
+    if (!email) email = prompt("Confirm your email to finish sign-in:");
+    try {
+      await signInWithEmailLink(auth, email, location.href);
+      localStorage.removeItem("as_last_email");
+      history.replaceState({}, "", location.pathname); // clean URL
+      alert("Signed in!");
+      window.gotoApp && window.gotoApp();
+    } catch (e) {
+      console.error(e);
+      alert("That sign-in link is invalid or expired.");
+    }
+  }
 
-  if (btnSignup) btnSignup.onclick = async () => {
-    const email = document.getElementById('su-email').value.trim().toLowerCase();
-    if (!email) return alert('Enter your email');
+  // Wire buttons to show the auth panel
+  document.getElementById("btn-login").onclick =
+  document.getElementById("btn-signup").onclick = () => {
+    window.showSection && window.showSection("auth");
+  };
+
+  // Send magic link for both Sign up and Log in
+  document.getElementById("do-login").onclick =
+  document.getElementById("do-signup").onclick = async () => {
+    const email =
+      (document.getElementById("login-email").value ||
+       document.getElementById("su-email").value).trim();
+    if (!email) return alert("Enter your email first.");
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      localStorage.setItem('emailForSignIn', email);
-      alert('Check your email for a sign-in link.');
+      localStorage.setItem("as_last_email", email);
+      alert(`We sent a sign-in link to ${email}. Check your inbox.`);
     } catch (e) {
-      console.error(e); alert('Could not send link: ' + (e?.message || e));
+      console.error(e);
+      alert(e.message || "Failed to send sign-in link.");
     }
   };
 
-  if (btnLogin) btnLogin.onclick = async () => {
-    const email = document.getElementById('login-email').value.trim().toLowerCase();
-    if (!email) return alert('Enter your email');
-    try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      localStorage.setItem('emailForSignIn', email);
-      alert('Check your email for a sign-in link.');
-    } catch (e) {
-      console.error(e); alert('Could not send link: ' + (e?.message || e));
-    }
-  };
-
-  if (btnLogout) btnLogout.onclick = async () => {
+  // Logout
+  document.getElementById("btn-logout").onclick = async () => {
     await signOut(auth);
-    window.refreshAuthUI?.();
-    window.showSection?.('home');
+    window.showSection && window.showSection("home");
   };
 
-  // Finish sign-in when user opens the magic link
-  (async () => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-      let email = localStorage.getItem('emailForSignIn');
-      if (!email) email = prompt('Confirm your email to finish sign-in:');
-      try {
-        await signInWithEmailLink(auth, email, window.location.href);
-        localStorage.removeItem('emailForSignIn');
-        history.replaceState({}, document.title, '/'); // clean the URL
-      } catch (e) {
-        console.error(e); alert('Sign-in failed: ' + (e?.message || e));
-      }
-    }
-  })();
-
-  // UI helper that uses Firebase auth state (overrides the earlier local version)
-  window.refreshAuthUI = function(){
-    const user = auth.currentUser;
-    const authed = !!user;
-    document.getElementById('auth-buttons')?.classList.toggle('hidden', authed);
-    document.getElementById('user-badge')?.classList.toggle('hidden', !authed);
-    if (authed) {
-      document.getElementById('whoami').textContent = user.email || 'Signed in';
-      document.getElementById('session-user').textContent = user.email || 'User';
-    }
-  };
-
+  // Update header UI on auth changes
   onAuthStateChanged(auth, (user) => {
-    window.refreshAuthUI();
-    if (user) {
-      // show app once authenticated
-      window.gotoApp?.();
+    const authed = !!user;
+    document.getElementById("auth-buttons").classList.toggle("hidden", authed);
+    document.getElementById("user-badge").classList.toggle("hidden", !authed);
+    if (authed) {
+      document.getElementById("whoami").textContent = user.email;
+      document.getElementById("session-user").textContent = user.email;
+      // enter app if not already there
+      window.gotoApp && window.gotoApp();
     }
   });
 </script>
