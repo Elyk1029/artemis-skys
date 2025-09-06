@@ -90,6 +90,7 @@
         <a href="#about" data-nav>About</a>
         <a href="#more" data-nav>More Info</a>
         <a href="#host" data-nav>For Companies</a>
+        <a href="#menu" id="nav-menu" class="hidden">Menu</a>
       </nav>
 
       <div class="row right" id="auth-buttons">
@@ -153,22 +154,26 @@
       <div class="two-col">
         <div class="panel">
           <h3>Log in</h3>
-          <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
-          <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
-          <div class="row right" style="gap:8px; flex-wrap:wrap">
-            <button class="btn secondary" id="forgot-pass">Forgot password</button>
-            <button class="btn" id="do-login">Enter</button>
-            <button class="btn ghost" id="login-magic" title="Send yourself a sign-in link">Email me a sign-in link</button>
-          </div>
-          <p class="help">Employees without a password can use the email link option.</p>
+          <form id="login-form">
+            <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
+            <div class="row right" style="gap:8px; flex-wrap:wrap">
+              <button class="btn secondary" id="forgot-pass" type="button">Forgot password</button>
+              <button class="btn" id="do-login" type="submit">Enter</button>
+              <button class="btn ghost" id="login-magic" type="button" title="Send yourself a sign-in link">Email me a sign-in link</button>
+            </div>
+            <p class="help">Employees without a password can use the email link option.</p>
+          </form>
         </div>
         <div class="panel">
           <h3>Sign up (Admin)</h3>
-          <div class="field"><label>Name</label><input id="su-name" type="text" placeholder="Full name"/></div>
-          <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"/></div>
-          <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 6 chars"/></div>
-          <div class="row right"><button class="btn secondary" id="do-signup">Create Account</button></div>
-          <p class="help">First account becomes admin automatically.</p>
+          <form id="signup-form">
+            <div class="field"><label>Name</label><input id="su-name" type="text" placeholder="Full name"/></div>
+            <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 6 chars"/></div>
+            <div class="row right"><button class="btn secondary" id="do-signup" type="submit">Create Account</button></div>
+            <p class="help">First account becomes admin automatically.</p>
+          </form>
         </div>
       </div>
     </section>
@@ -211,6 +216,8 @@
               <div class="field"><label>Company name</label><input id="brand-name-input" placeholder="Your Company"/></div>
               <div class="field"><label>Logo URL</label><input id="brand-logo-input" placeholder="https://.../logo.png"/></div>
               <div class="field"><label>Background URL</label><input id="brand-bg-input" placeholder="https://.../background.jpg"/></div>
+              <div class="field"><label>Default Start</label><input id="brand-default-start" type="time" value="09:00"/></div>
+              <div class="field"><label>Default End</label><input id="brand-default-end" type="time" value="17:00"/></div>
               <div class="row right"><button class="btn small" id="save-brand">Save Branding</button></div>
               <p class="help">Tip: Use a large landscape image for the background for best results.</p>
             </div>
@@ -341,6 +348,97 @@
 
   <footer>© <span id="year"></span> Artemis Skys. All rights reserved.</footer>
 
+  
+  
+  <!-- ===== Global Enter handlers + early login/signup (before Firebase) ===== -->
+  <script>
+    (function(){
+      function queueLogin(){
+        try {
+          const email = document.getElementById('login-email')?.value?.trim() || '';
+          const pass  = document.getElementById('login-pass')?.value || '';
+          if (window._doLogin) { window._doLogin(email, pass); }
+          else { window._pendingLogin = { email, pass }; }
+        } catch {}
+      }
+      function queueSignup(){
+        try {
+          const name  = document.getElementById('su-name')?.value?.trim() || '';
+          const email = document.getElementById('su-email')?.value?.trim() || '';
+          const pass  = document.getElementById('su-pass')?.value || '';
+          if (window._doSignup) { window._doSignup(name, email, pass); }
+          else { window._pendingSignup = { name, email, pass }; }
+        } catch {}
+      }
+      function onEnter(e){
+        if (e.key !== 'Enter') return;
+        const active = document.activeElement;
+        const inAuth = active?.closest && active.closest('#auth');
+        if (!inAuth) return;
+        e.preventDefault();
+        const id = active?.id || '';
+        if (id.startsWith('su-')) queueSignup();
+        else queueLogin();
+      }
+      // Form submit fallbacks
+      const lf = document.getElementById('login-form'); if (lf) lf.addEventListener('submit', (e)=>{ e.preventDefault(); queueLogin(); });
+      const sf = document.getElementById('signup-form'); if (sf) sf.addEventListener('submit', (e)=>{ e.preventDefault(); queueSignup(); });
+
+      // Button fallbacks
+      const loginBtn  = document.getElementById('do-login');
+      const signupBtn = document.getElementById('do-signup');
+      if (loginBtn)  loginBtn.addEventListener('click', (e)=>{ e.preventDefault(); queueLogin(); });
+      if (signupBtn) signupBtn.addEventListener('click', (e)=>{ e.preventDefault(); queueSignup(); });
+      // Field-level Enter fallback
+      ['login-email','login-pass','su-name','su-email','su-pass'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', onEnter);
+      });
+      // Document-level catch-all
+      document.addEventListener('keydown', onEnter, true);
+    })();
+  </script>
+
+  <!-- ===== Fallback auth openers (run before Firebase JS) ===== -->
+  <script>
+    // Ensure the header "Log in" and "Sign up" buttons always open the auth panel,
+    // even if the Firebase module hasn't finished loading yet.
+    (function(){
+      const loginBtn = document.getElementById('btn-login');
+      const signupBtn = document.getElementById('btn-signup');
+      function openAuth(){ try{ if (window.showSection) window.showSection('auth'); else { document.getElementById('auth')?.classList.remove('hidden'); } setTimeout(()=>{ document.getElementById('login-email')?.focus(); }, 0); }catch{} }
+      if (loginBtn) loginBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
+      if (signupBtn) signupBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
+    })();
+  </script>
+
+  
+  <!-- ===== Early login triggers (before Firebase) ===== -->
+  <script>
+    (function(){
+      function queueLogin(){
+        try {
+          const email = document.getElementById('login-email')?.value?.trim() || '';
+          const pass  = document.getElementById('login-pass')?.value || '';
+          if (window._doLogin) { window._doLogin(email, pass); }
+          else { window._pendingLogin = { email, pass }; }
+        } catch {}
+      }
+      function onEnter(e){
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          queueLogin();
+        }
+      }
+      const btn = document.getElementById('do-login');
+      const em  = document.getElementById('login-email');
+      const pw  = document.getElementById('login-pass');
+      if (btn) btn.addEventListener('click', (e)=>{ e.preventDefault(); queueLogin(); });
+      if (em)  em.addEventListener('keydown', onEnter);
+      if (pw)  pw.addEventListener('keydown', onEnter);
+    })();
+  </script>
+
   <!-- ========= App utilities (inventory local) ========= -->
   <script>
     const DEFAULT_BG = 'https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg';
@@ -385,10 +483,13 @@
     window.showAppPage = showAppPage;
 
     // Landing buttons
-    $('#go-home').onclick = ()=>showSection('home');
+    $('#go-home').onclick = ()=>{ if (window._authed) { window.showSection('app'); window.showAppPage('menu'); } else { showSection('home'); } };
     $('#cta-learn').onclick = ()=>showSection('about');
     $('#cta-get-started').onclick = ()=>showSection('host');
     $$('a[data-nav]').forEach(a=>a.onclick = (e)=>{ e.preventDefault(); showSection(a.getAttribute('href').substring(1)) });
+
+    const _navMenu = document.getElementById('nav-menu');
+    if (_navMenu) _navMenu.onclick = (e)=>{ e.preventDefault(); window.showSection('app'); window.showAppPage('menu'); };
 
     // Menu buttons
     $('#menu-schedule').onclick = ()=> showAppPage('schedule');
@@ -551,8 +652,10 @@
       const brandName = (document.getElementById('brand-name-input')?.value || '').trim();
       const brandLogoUrl = (document.getElementById('brand-logo-input')?.value || '').trim();
       const brandBgUrl = (document.getElementById('brand-bg-input')?.value || '').trim();
+      const defaultStart = (document.getElementById('brand-default-start')?.value || '09:00').trim();
+      const defaultEnd = (document.getElementById('brand-default-end')?.value || '17:00').trim();
       try{
-        await setDoc(doc(db, orgPath()), { brandName, brandLogoUrl, brandBgUrl, updatedAt: serverTimestamp() }, { merge:true });
+        await setDoc(doc(db, orgPath()), { brandName, brandLogoUrl, brandBgUrl, defaultStart, defaultEnd, updatedAt: serverTimestamp() }, { merge:true });
         alert('Branding saved.');
       }catch(e){ console.warn('branding save failed', e); alert('Could not save branding (rules?).'); }
     }
@@ -611,6 +714,8 @@
     async function refreshAuthUI(){
       const user = auth.currentUser;
       const authed = !!user && !!user.email;
+      window._authed = authed;
+      const _navMenu = document.getElementById('nav-menu'); if (_navMenu) _navMenu.classList.toggle('hidden', !authed);
       document.getElementById('auth-buttons').classList.toggle('hidden', authed);
       document.getElementById('user-badge').classList.toggle('hidden', !authed);
       if (authed) {
@@ -656,37 +761,75 @@
     btnLogin.onclick = ()=>{ window.showSection('auth'); document.getElementById('login-email').focus(); };
     btnSignup.onclick = ()=>{ window.showSection('auth'); document.getElementById('su-name').focus(); };
 
-    // Sign up (admin)
-    doSignup.onclick = async () => {
-      const name = document.getElementById('su-name').value.trim();
-      const email = document.getElementById('su-email').value.trim();
-      const pass  = document.getElementById('su-pass').value;
-      if(!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
-      try{
-        const { user } = await createUserWithEmailAndPassword(auth, email, pass);
-        await setDoc(doc(db,'profiles', user.uid), { name, email, role:'admin', orgOwner:user.uid, createdAt: serverTimestamp() }, {merge:true});
-        // create org doc so branding can be saved
-        await setDoc(doc(db, `orgs/${user.uid}`), { brandName: 'Artemis Skys', createdAt: serverTimestamp() }, { merge:true });
-        await sendEmailVerification(user, actionCodeSettings);
-        alert('Account created. Check your email for a verification link.');
-      }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
-    };
+    
+// Sign up (admin) centralized + Enter support
+window._doSignup = async (nameArg, emailArg, passArg) => {
+  const name  = (nameArg  ?? document.getElementById('su-name')?.value || '').trim();
+  const email = (emailArg ?? document.getElementById('su-email')?.value || '').trim();
+  const pass  = (passArg  ?? document.getElementById('su-pass')?.value || '');
+  if (!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
+  try{
+    const { user } = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db,'profiles', user.uid), { name, email, role:'admin', orgOwner:user.uid, createdAt: serverTimestamp() }, {merge:true});
+    await setDoc(doc(db, `orgs/${user.uid}`), { brandName: 'Artemis Skys', createdAt: serverTimestamp() }, { merge:true });
+    await sendEmailVerification(user, actionCodeSettings);
+    alert('Account created. Check your email for a verification link.');
+    refreshAuthUI();
+  }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
+};
+doSignup.onclick = (e)=>{ e.preventDefault(); window._doSignup(); };
 
-    // Login (email/password)
-    doLogin.onclick = async () => {
-      const email = document.getElementById('login-email').value.trim();
-      const pass  = document.getElementById('login-pass').value;
-      try{
-        const { user } = await signInWithEmailAndPassword(auth, email, pass);
-        refreshAuthUI();
-      }catch(e){
-        console.error(e);
-        if (String(e?.code||'').includes('operation-not-allowed')) {
-          document.getElementById('auth-banner').classList.remove('hidden');
-        }
-        alert(e.message || 'Login failed');
-      }
-    };
+// Form submit binding (signup)
+const _sf = document.getElementById('signup-form'); if (_sf) _sf.addEventListener('submit', (ev)=>{ ev.preventDefault(); window._doSignup(); });
+['su-name','su-email','su-pass'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter'){ ev.preventDefault(); window._doSignup(); } });
+});
+// Run any queued signup captured before Firebase loaded
+if (window._pendingSignup) {
+  const { name, email, pass } = window._pendingSignup;
+  try { delete window._pendingSignup; } catch {}
+  setTimeout(()=> window._doSignup(name, email, pass), 0);
+}
+
+
+    
+// Login (email/password) with centralized function + Enter key support
+window._authReady = true;
+window._doLogin = async (emailArg, passArg) => {
+  const email = (emailArg ?? document.getElementById('login-email')?.value || '').trim();
+  const pass  = (passArg ?? document.getElementById('login-pass')?.value || '');
+  if (!email || !pass) { alert('Enter email and password, or use the email link option.'); return; }
+  try{
+    const { user } = await signInWithEmailAndPassword(auth, email, pass);
+    refreshAuthUI();
+  }catch(e){
+    console.error(e);
+    if (String(e?.code||'').includes('operation-not-allowed')) {
+      document.getElementById('auth-banner').classList.remove('hidden');
+    }
+    alert(e.message || 'Login failed');
+  }
+};
+
+doLogin.onclick = (e) => { e.preventDefault(); window._doLogin(); };
+
+// Form submit binding (login)
+const _lf = document.getElementById('login-form'); if (_lf) _lf.addEventListener('submit', (ev)=>{ ev.preventDefault(); window._doLogin(); });
+
+// Bind Enter key in both fields (in case early handler missed it)
+['login-email','login-pass'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter'){ ev.preventDefault(); window._doLogin(); } });
+});
+
+// If a login was queued before Firebase loaded, execute it now
+if (window._pendingLogin) {
+  const { email, pass } = window._pendingLogin;
+  try { delete window._pendingLogin; } catch {}
+  setTimeout(()=> window._doLogin(email, pass), 0);
+}
+
 
     // Email-link sign-in
     magicBtn.onclick = async () => {
@@ -806,6 +949,8 @@
             document.getElementById('brand-name-input').value = state.brand?.brandName || '';
             document.getElementById('brand-logo-input').value = state.brand?.brandLogoUrl || '';
             document.getElementById('brand-bg-input').value   = state.brand?.brandBgUrl || '';
+            const ds = document.getElementById('brand-default-start'); if (ds) ds.value = state.brand?.defaultStart || '09:00';
+            const de = document.getElementById('brand-default-end');   if (de) de.value = state.brand?.defaultEnd || '17:00';
           }
         }, error:(err)=>{
           console.warn('brand snapshot error', err);
@@ -965,7 +1110,8 @@
     document.getElementById('refresh-week').onclick = paintWeek;
     const wsi = document.getElementById('week-start'); if (wsi) wsi.value = weekStartISO();
 
-    function paintWeek(){
+    
+function paintWeek(){
       const startInput = document.getElementById('week-start');
       if (!startInput) return;
       const start = new Date(startInput.value || weekStartISO());
@@ -977,24 +1123,84 @@
 
       const body = document.getElementById('week-body'); body.innerHTML='';
 
+      const admin = window._role === 'admin';
       const meEmail = (auth.currentUser?.email||'').toLowerCase();
       const myNames = state.employees.filter(e=> (e.email||'').toLowerCase()===meEmail).map(e=>e.name).filter(Boolean);
       const allNames = [...new Set(state.employees.map(e=>e.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-      const names = (state.schedScope==='mine' && myNames.length) ? myNames : (window._role==='admin' ? allNames : myNames.length ? myNames : allNames);
+      const names = (state.schedScope==='mine' && myNames.length) ? myNames : (admin ? allNames : myNames.length ? myNames : allNames);
 
       names.forEach(name=>{
         const tr = document.createElement('tr');
         const tds = days.map(d=>{
           const iso = d.toISOString().slice(0,10);
           const list = state.shifts.filter(s=>s.empName===name && s.date===iso);
-          return `<td>${list.map(s=>`${s.start}–${s.end}`).join('<br>')}</td>`;
+          const items = list.map(s=>`
+            <div class="row" style="gap:6px; align-items:center">
+              <span>${s.start}–${s.end}</span>
+              ${admin ? `<button class="btn secondary small shift-edit" data-id="${s.id}" data-name="${name}" data-date="${iso}" data-start="${s.start}" data-end="${s.end}" title="Edit">✎</button>
+                         <button class="btn ghost small shift-del" data-id="${s.id}" title="Remove">×</button>` : ''}
+            </div>
+          `).join('');
+          const addBtn = admin ? `<div style="margin-top:6px"><button class="btn ghost small shift-add" data-name="${name}" data-date="${iso}">+ Add</button></div>` : '';
+          return `<td>${items}${addBtn}</td>`;
         });
         tr.innerHTML = `<td><strong>${name}</strong></td>` + tds.join('');
         body.appendChild(tr);
       });
+
+      // Wire up admin actions
+      if (admin) {
+        const base = orgPath();
+        // Add
+        body.querySelectorAll('.shift-add').forEach(btn=>{
+          btn.onclick = async ()=>{
+            const empName = btn.getAttribute('data-name');
+            const date = btn.getAttribute('data-date');
+            const defStart = state.brand?.defaultStart || '09:00';
+            const defEnd = state.brand?.defaultEnd || '17:00';
+            try{
+              await addDoc(collection(db, `${base}/shifts`), {date, empName, start:defStart, end:defEnd, createdAt: serverTimestamp(), updatedAt: serverTimestamp()});
+              paintWeek();
+            }catch(e){ console.warn('quick add failed', e); setWarn(true, 'Add shift failed (rules?)'); }
+          };
+        });
+        // Delete
+        body.querySelectorAll('.shift-del').forEach(btn=>{
+          btn.onclick = async ()=>{
+            const id = btn.getAttribute('data-id');
+            if (!confirm('Remove this shift?')) return;
+            try{ await deleteDoc(doc(db, `${base}/shifts/${id}`)); paintWeek(); }
+            catch(e){ console.warn('delete failed', e); setWarn(true, 'Delete failed (rules?)'); }
+          };
+        });
+        // Edit (change times and/or reassign)
+        body.querySelectorAll('.shift-edit').forEach(btn=>{
+          btn.onclick = async ()=>{
+            const id = btn.getAttribute('data-id');
+            const curName = btn.getAttribute('data-name');
+            const curDate = btn.getAttribute('data-date');
+            const curStart = btn.getAttribute('data-start');
+            const curEnd = btn.getAttribute('data-end');
+            const newStart = prompt('Start time (HH:MM)', curStart) || curStart;
+            const newEnd = prompt('End time (HH:MM)', curEnd) || curEnd;
+            let newName = curName;
+            if (confirm('Reassign to a different employee?')) {
+              const list = [...new Set(state.employees.map(e=>e.name).filter(Boolean))].join(', ');
+              const typed = prompt('Type a name exactly as listed:
+' + list, curName);
+              if (typed) newName = typed;
+            }
+            try{
+              await updateDoc(doc(db, `${base}/shifts/${id}`), { empName: newName, start: newStart, end: newEnd, updatedAt: serverTimestamp() });
+              paintWeek();
+            }catch(e){ console.warn('edit failed', e); setWarn(true, 'Edit failed (rules?)'); }
+          };
+        });
+      }
     }
 
-    // ----- Email notifications (via Trigger Email extension) -----
+    // ----- Email notifications
+ (via Trigger Email extension) -----
     async function emailShiftNotice(shift){
       try{
         const to = state.employees.filter(e=>e.subscribed && e.email).map(e=>e.email);
