@@ -154,22 +154,26 @@
       <div class="two-col">
         <div class="panel">
           <h3>Log in</h3>
-          <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
-          <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
-          <div class="row right" style="gap:8px; flex-wrap:wrap">
-            <button class="btn secondary" id="forgot-pass">Forgot password</button>
-            <button class="btn" id="do-login">Enter</button>
-            <button class="btn ghost" id="login-magic" title="Send yourself a sign-in link">Email me a sign-in link</button>
-          </div>
-          <p class="help">Employees without a password can use the email link option.</p>
+          <form id="login-form">
+            <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
+            <div class="row right" style="gap:8px; flex-wrap:wrap">
+              <button class="btn secondary" id="forgot-pass" type="button">Forgot password</button>
+              <button class="btn" id="do-login" type="submit">Enter</button>
+              <button class="btn ghost" id="login-magic" type="button" title="Send yourself a sign-in link">Email me a sign-in link</button>
+            </div>
+            <p class="help">Employees without a password can use the email link option.</p>
+          </form>
         </div>
         <div class="panel">
           <h3>Sign up (Admin)</h3>
-          <div class="field"><label>Name</label><input id="su-name" type="text" placeholder="Full name"/></div>
-          <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"/></div>
-          <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 6 chars"/></div>
-          <div class="row right"><button class="btn secondary" id="do-signup">Create Account</button></div>
-          <p class="help">First account becomes admin automatically.</p>
+          <form id="signup-form">
+            <div class="field"><label>Name</label><input id="su-name" type="text" placeholder="Full name"/></div>
+            <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 6 chars"/></div>
+            <div class="row right"><button class="btn secondary" id="do-signup" type="submit">Create Account</button></div>
+            <p class="help">First account becomes admin automatically.</p>
+          </form>
         </div>
       </div>
     </section>
@@ -376,6 +380,10 @@
         if (id.startsWith('su-')) queueSignup();
         else queueLogin();
       }
+      // Form submit fallbacks
+      const lf = document.getElementById('login-form'); if (lf) lf.addEventListener('submit', (e)=>{ e.preventDefault(); queueLogin(); });
+      const sf = document.getElementById('signup-form'); if (sf) sf.addEventListener('submit', (e)=>{ e.preventDefault(); queueSignup(); });
+
       // Button fallbacks
       const loginBtn  = document.getElementById('do-login');
       const signupBtn = document.getElementById('do-signup');
@@ -398,7 +406,7 @@
     (function(){
       const loginBtn = document.getElementById('btn-login');
       const signupBtn = document.getElementById('btn-signup');
-      function openAuth(){ try{ window.showSection && window.showSection('auth'); setTimeout(()=>{ document.getElementById('login-email')?.focus(); }, 0); }catch{} }
+      function openAuth(){ try{ if (window.showSection) window.showSection('auth'); else { document.getElementById('auth')?.classList.remove('hidden'); } setTimeout(()=>{ document.getElementById('login-email')?.focus(); }, 0); }catch{} }
       if (loginBtn) loginBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
       if (signupBtn) signupBtn.addEventListener('click', (e)=>{ e.preventDefault(); openAuth(); }, { once:false });
     })();
@@ -770,6 +778,9 @@ window._doSignup = async (nameArg, emailArg, passArg) => {
   }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
 };
 doSignup.onclick = (e)=>{ e.preventDefault(); window._doSignup(); };
+
+// Form submit binding (signup)
+const _sf = document.getElementById('signup-form'); if (_sf) _sf.addEventListener('submit', (ev)=>{ ev.preventDefault(); window._doSignup(); });
 ['su-name','su-email','su-pass'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter'){ ev.preventDefault(); window._doSignup(); } });
@@ -802,6 +813,9 @@ window._doLogin = async (emailArg, passArg) => {
 };
 
 doLogin.onclick = (e) => { e.preventDefault(); window._doLogin(); };
+
+// Form submit binding (login)
+const _lf = document.getElementById('login-form'); if (_lf) _lf.addEventListener('submit', (ev)=>{ ev.preventDefault(); window._doLogin(); });
 
 // Bind Enter key in both fields (in case early handler missed it)
 ['login-email','login-pass'].forEach(id => {
