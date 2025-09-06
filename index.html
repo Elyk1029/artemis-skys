@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Artemis Skys</title>
   <style>
-    /* ===== Lunar matte theme ===== */
     :root{
       --space:#2a2a2a; --space-2:#1e1e1e; --card:#333333;
       --text:#f2f2f2; --muted:#b5b5b5; --accent:#9a9a9a; --accent-2:#c2c2c2;
@@ -37,12 +36,15 @@
     .btn.small{padding:6px 10px; border-radius:10px; font-size:.9rem}
     .logo{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.3px}
     .logo svg{width:34px; height:34px}
+    .brand-logo{height:34px; width:auto; border-radius:8px; display:none}
     .logo span{color:var(--accent-2)}
     .hero{padding:64px 16px 24px}
     .hero h1{font-size:clamp(28px, 6vw, 48px); margin:0 0 10px; line-height:1.05; color:var(--text)}
     .hero p{max-width:720px; color:var(--muted); font-size:1.03rem}
     .cards{display:grid; grid-template-columns:repeat(auto-fit, minmax(260px,1fr)); gap:16px; margin:26px 0}
     .card{background:var(--card); border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:18px; box-shadow:var(--shadow)}
+    .card.clickable{cursor:pointer; transition:transform .12s ease, box-shadow .2s ease}
+    .card.clickable:hover{transform:translateY(-1px); box-shadow: 0 0 0 2px rgba(255,255,255,.18), 0 16px 40px rgba(0,0,0,.25)}
     .muted{color:var(--muted)}
     .two-col{display:grid; grid-template-columns:1.2fr .8fr; gap:18px}
     @media (max-width:900px){.two-col{grid-template-columns:1fr}}
@@ -64,6 +66,7 @@
     .tag{border:1px solid rgba(255,255,255,.2); border-radius:999px; padding:4px 8px; font-size:.8rem; color:var(--muted); background:rgba(50,50,50,.7)}
     footer{opacity:.85; padding:44px 16px; text-align:center; color:var(--muted)}
     .banner{border:1px solid rgba(245,158,11,.5); background:rgba(245,158,11,.15); color:#fde68a; border-radius:var(--radius); padding:10px 12px; margin:8px 0}
+    .topbar{display:flex; align-items:center; gap:10px; margin-bottom:10px}
   </style>
 </head>
 <body>
@@ -72,14 +75,15 @@
   <header>
     <div class="wrap row">
       <div class="logo" id="go-home" style="cursor:pointer">
-        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <img id="brand-logo" class="brand-logo" alt="Logo"/>
+        <svg id="fallback-logo" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="#bbbbbb"/><stop offset="100%" stop-color="#e0e0e0"/>
           </linearGradient></defs>
           <path d="M40 10a16 16 0 1 0 14 24A18 18 0 1 1 40 10Z" fill="url(#g)"/>
           <path d="M16 44c0-5.523 4.477-10 10-10a9.98 9.98 0 0 1 7.14 2.96A12 12 0 1 1 46 52H20a8 8 0 0 1-8-8Z" fill="#e5e7eb" opacity=".9"/>
         </svg>
-        <span>Artemis Skys</span>
+        <span id="brand-name">Artemis Skys</span>
       </div>
       <nav class="spacer">
         <a href="#home" data-nav>Home</a>
@@ -88,13 +92,11 @@
         <a href="#host" data-nav>For Companies</a>
       </nav>
 
-      <!-- Shown when logged out -->
       <div class="row right" id="auth-buttons">
         <button class="btn small" id="btn-login">Log in</button>
         <button class="btn ghost small" id="btn-signup">Sign up</button>
       </div>
 
-      <!-- Shown when logged in -->
       <div class="row right hidden" id="user-badge">
         <span class="tag" id="whoami">Signed in</span>
         <button class="btn secondary small" id="btn-logout">Log out</button>
@@ -107,21 +109,21 @@
     <!-- LANDING -->
     <section id="home" class="hero">
       <h1>Scheduling & Inventory that feels calm and reliable.</h1>
-      <p>Invite employees with email-link sign-in. Employees can view <strong>only their shifts</strong> or switch to <strong>Full view</strong> if allowed.</p>
+      <p>Post-login menu lets you jump into <strong>Scheduling</strong> or <strong>Inventory</strong>. Employees see Scheduling only. Admins can brand the app with your company name, logo, and background.</p>
       <div class="row" style="margin-top:18px; gap:12px">
         <button class="btn" id="cta-get-started">Get Started</button>
         <button class="btn secondary" id="cta-learn">Learn More</button>
       </div>
       <div class="cards">
         <div class="card"><h3>Email Link Sign-in</h3><p class="muted">No passwords needed for employees.</p></div>
-        <div class="card"><h3>Per-employee View</h3><p class="muted">Default to “My Shifts.”</p></div>
-        <div class="card"><h3>Admin Full View</h3><p class="muted">Switch to all schedules with one click.</p></div>
+        <div class="card"><h3>Per-employee View</h3><p class="muted">“My Shifts” + optional “All Schedules”.</p></div>
+        <div class="card"><h3>Branding</h3><p class="muted">Set company name, logo, and background.</p></div>
       </div>
     </section>
 
     <section id="about" class="hero hidden">
       <h1>About Artemis Skys</h1>
-      <p>A compact multi-user portal for <strong>shifts</strong> and <strong>stock</strong>. Firestore-backed scheduling; local inventory.</p>
+      <p>Multi-user portal for <strong>shifts</strong> and <strong>stock</strong>. Firestore-backed scheduling; local inventory.</p>
     </section>
 
     <section id="more" class="hero hidden">
@@ -139,8 +141,8 @@
         <strong>Quick Start</strong>
         <ol>
           <li>Sign up your admin account, verify email.</li>
-          <li>Invite employees from the Schedule tab (email link sign-in).</li>
-          <li>Employees open the link to sign in and see “My Shifts.”</li>
+          <li>Invite employees (email link sign-in).</li>
+          <li>Set your brand name, logo, and background in the Menu page.</li>
         </ol>
       </div>
     </section>
@@ -171,7 +173,7 @@
       </div>
     </section>
 
-    <!-- RESET PASSWORD (email link mode=resetPassword) -->
+    <!-- RESET PASSWORD -->
     <section id="reset" class="hero hidden">
       <div class="panel">
         <h3>Reset your password</h3>
@@ -188,20 +190,52 @@
     <!-- APP -->
     <section id="app" class="hero hidden">
       <div id="warn" class="banner hidden">Limited mode: Firestore rules may be blocking reads/writes. Check your Firestore Security Rules.</div>
-      <div class="row" style="margin-bottom:12px">
-        <div class="tabs" id="app-tabs">
-          <div class="tab active" data-tab="schedule">Schedule</div>
-          <div class="tab" data-tab="inventory">Inventory</div>
-          <div class="tab" data-tab="data">Data</div>
+
+      <!-- MENU PAGE -->
+      <div id="page-menu">
+        <div class="topbar">
+          <h2 style="margin:0">Menu</h2>
+          <div class="spacer"></div>
+          <div class="tag" id="session-user">User</div>
         </div>
-        <div class="spacer"></div>
-        <div class="tag" id="session-user">User</div>
+        <div class="cards" id="menu-cards">
+          <div class="card clickable" id="menu-schedule"><h3>Scheduling</h3><p class="muted">Create, assign, and view shifts.</p></div>
+          <div class="card clickable" id="menu-inventory"><h3>Inventory</h3><p class="muted">Track items and stock changes.</p></div>
+        </div>
+
+        <!-- Admin-only branding panel -->
+        <div id="brand-panel" class="panel hidden" style="margin-top:14px">
+          <h3>Branding</h3>
+          <div class="two-col">
+            <div>
+              <div class="field"><label>Company name</label><input id="brand-name-input" placeholder="Your Company"/></div>
+              <div class="field"><label>Logo URL</label><input id="brand-logo-input" placeholder="https://.../logo.png"/></div>
+              <div class="field"><label>Background URL</label><input id="brand-bg-input" placeholder="https://.../background.jpg"/></div>
+              <div class="row right"><button class="btn small" id="save-brand">Save Branding</button></div>
+              <p class="help">Tip: Use a large landscape image for the background for best results.</p>
+            </div>
+            <div>
+              <div class="card"><h4 style="margin:0 0 6px">Preview</h4>
+                <div class="row" style="align-items:center; gap:10px">
+                  <img id="brand-logo-preview" class="brand-logo" style="display:block"/>
+                  <span id="brand-name-preview" style="font-weight:800">Your Company</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- SCHEDULE -->
-      <div id="tab-schedule">
+      <!-- SCHEDULE PAGE -->
+      <div id="page-schedule" class="hidden">
+        <div class="topbar">
+          <button class="btn ghost small" id="btn-back-schedule">← Back to Menu</button>
+          <h2 style="margin:0">Scheduling</h2>
+          <div class="spacer"></div>
+          <div class="tag" id="session-user-sched">User</div>
+        </div>
+
         <div id="admin-only" class="two-col">
-          <!-- Admin: Employees & Invites -->
           <div class="panel">
             <h3>Employees</h3>
             <div class="field"><label>Name</label><input id="emp-name" placeholder="Employee name"/></div>
@@ -210,14 +244,13 @@
               <button class="btn small" id="invite-emp">Invite by Email Link</button>
               <button class="btn secondary small" id="add-emp">Add without sending</button>
             </div>
-            <p class="help">Invites send a passwordless sign-in link. Enable “Email link” in Firebase Auth.</p>
+            <p class="help">Invites send a passwordless sign-in link.</p>
             <table id="emp-table" style="margin-top:10px">
               <thead><tr><th>Name</th><th>Email</th><th>Subscribed</th><th>Action</th></tr></thead>
               <tbody></tbody>
             </table>
           </div>
 
-          <!-- Admin: New Shift -->
           <div class="panel">
             <h3>New Shift</h3>
             <div class="field"><label>Date</label><input id="shift-date" type="date"/></div>
@@ -229,11 +262,10 @@
           </div>
         </div>
 
-        <!-- Employee: preferences -->
         <div id="employee-only" class="panel hidden">
           <h3>My Preferences</h3>
           <div class="field"><label>Email me updates</label><input id="me-subscribed" type="checkbox"/></div>
-          <p class="help">You’ll receive an email when new shifts are posted (if your admin enabled email sending).</p>
+          <p class="help">You’ll receive an email when new shifts are posted.</p>
         </div>
 
         <div class="panel" style="margin-top:16px">
@@ -255,8 +287,15 @@
         </div>
       </div>
 
-      <!-- INVENTORY (local-only) -->
-      <div id="tab-inventory" class="hidden">
+      <!-- INVENTORY PAGE -->
+      <div id="page-inventory" class="hidden">
+        <div class="topbar">
+          <button class="btn ghost small" id="btn-back-inventory">← Back to Menu</button>
+          <h2 style="margin:0">Inventory</h2>
+          <div class="spacer"></div>
+          <div class="tag" id="session-user-inv">User</div>
+        </div>
+
         <div class="two-col">
           <div class="panel">
             <h3>Add / Edit Item</h3>
@@ -297,28 +336,6 @@
           </table>
         </div>
       </div>
-
-      <!-- DATA (inventory local import/export) -->
-      <div id="tab-data" class="hidden">
-        <div class="two-col">
-          <div class="panel">
-            <h3>Export / Import (Local)</h3>
-            <div class="row" style="gap:8px; flex-wrap:wrap">
-              <button class="btn small" id="export-json">Export JSON</button>
-              <label class="btn ghost small" style="cursor:pointer">
-                Import JSON
-                <input id="import-json" type="file" accept="application/json" style="display:none"/>
-              </label>
-            </div>
-            <p class="notice">Includes local inventory and logs (scheduling is in Firestore).</p>
-          </div>
-          <div class="panel">
-            <h3>Danger Zone</h3>
-            <button class="btn" style="background:linear-gradient(135deg, var(--danger), #b91c1c)" id="wipe">Wipe Local Data</button>
-            <p class="notice">Clears all Artemis Skys <em>local</em> data from this browser.</p>
-          </div>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -326,14 +343,14 @@
 
   <!-- ========= App utilities (inventory local) ========= -->
   <script>
-    // Utilities
+    const DEFAULT_BG = 'https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg';
     const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
     const fmtDate = d => new Date(d).toLocaleString([], {year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
     const weekStartISO = () => {
       const d = new Date();
-      const day = d.getDay(); // 0 Sun
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(d.setDate(diff));
       return monday.toISOString().slice(0,10);
     };
@@ -356,26 +373,36 @@
     }
     window.showSection = showSection;
 
+    // In-app pages
+    function showAppPage(page){
+      ['menu','schedule','inventory'].forEach(p=>{
+        const el = document.getElementById('page-'+p);
+        if (el) el.classList.toggle('hidden', p!==page);
+      });
+      if (page === 'inventory') { refreshInv(); refreshLog(); }
+      if (page === 'schedule') { paintWeek(); }
+    }
+    window.showAppPage = showAppPage;
+
     // Landing buttons
     $('#go-home').onclick = ()=>showSection('home');
     $('#cta-learn').onclick = ()=>showSection('about');
     $('#cta-get-started').onclick = ()=>showSection('host');
     $$('a[data-nav]').forEach(a=>a.onclick = (e)=>{ e.preventDefault(); showSection(a.getAttribute('href').substring(1)) });
 
-    // App tabs
-    $$('#app-tabs .tab').forEach(t=>t.onclick = ()=>{
-      $$('#app-tabs .tab').forEach(x=>x.classList.remove('active'));
-      t.classList.add('active');
-      ['schedule','inventory','data'].forEach(id=>{
-        const on = t.dataset.tab===id;
-        $('#tab-'+id).classList.toggle('hidden', !on);
-      });
-    });
+    // Menu buttons
+    $('#menu-schedule').onclick = ()=> showAppPage('schedule');
+    $('#menu-inventory').onclick = ()=> {
+      if (window._role !== 'admin') { alert('Employees cannot access Inventory.'); return; }
+      showAppPage('inventory');
+    };
+    $('#btn-back-schedule').onclick = ()=> showAppPage('menu');
+    $('#btn-back-inventory').onclick = ()=> showAppPage('menu');
 
     // INVENTORY (local only)
     function refreshInv(){
       const inv = store.get(K.inv, []);
-      const tbody = $('#inv-table tbody'); tbody.innerHTML='';
+      const tbody = $('#inv-table tbody'); if (!tbody) return; tbody.innerHTML='';
       inv.forEach((it, i)=>{
         const val = (it.qty||0) * (it.cost||0);
         const tr = document.createElement('tr');
@@ -394,7 +421,7 @@
     }
     function logLine(sku, delta, note=''){ const log = store.get(K.log, []); log.unshift({ts:Date.now(), sku, delta, note}); store.set(K.log, log); refreshLog(); }
     function refreshLog(){
-      const tbody = $('#log-table tbody'); tbody.innerHTML='';
+      const tbody = $('#log-table tbody'); if (!tbody) return; tbody.innerHTML='';
       store.get(K.log, []).forEach(row=>{
         const tr=document.createElement('tr');
         tr.innerHTML = `<td>${fmtDate(row.ts)}</td><td>${row.sku}</td><td>${row.delta>0?`+${row.delta}`:row.delta}</td><td>${row.note||''}</td>`;
@@ -422,25 +449,6 @@
     $('#issue').onclick = ()=>adjust(-1);
 
     // Local data import/export
-    $('#export-json').onclick = ()=>{
-      const blob = new Blob([JSON.stringify({
-        inv: store.get(K.inv, []),
-        log: store.get(K.log, [])
-      }, null, 2)], {type:'application/json'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='artemis-skys-local.json'; a.click();
-    };
-    $('#import-json').onchange = (e)=>{
-      const file = e.target.files[0]; if(!file) return;
-      const r = new FileReader(); r.onload = ()=>{
-        try{
-          const data = JSON.parse(r.result);
-          if(data.inv) store.set(K.inv, data.inv);
-          if(data.log) store.set(K.log, data.log);
-          alert('Local data imported.');
-          refreshInv(); refreshLog();
-        }catch(err){ alert('Invalid JSON.'); }
-      }; r.readAsText(file);
-    };
     $('#export-inv').onclick = ()=>{
       const rows = [['Name','SKU','Qty','Unit Cost','Value']];
       store.get(K.inv, []).forEach(it=> rows.push([it.name, it.sku, it.qty, (it.cost??0).toFixed(2), ((it.qty||0)*(it.cost||0)).toFixed(2)]));
@@ -459,7 +467,7 @@
     showSection('home');
   </script>
 
-  <!-- ========= Firebase (Auth + Firestore + email links + verification + notifications) ========= -->
+  <!-- ========= Firebase (Auth + Firestore + email links + verification + notifications + branding) ========= -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
     import {
@@ -483,7 +491,6 @@
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
 
-    // ---- Firebase config ----
     const firebaseConfig = {
       apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
       authDomain: "artemisskys-81c8d.firebaseapp.com",
@@ -499,17 +506,57 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Use current origin for action links (works on localhost & prod). Be sure to authorize both domains in Firebase Auth settings.
     const ORIGIN = window.location.origin;
     const actionCodeSettings = { url: ORIGIN + '/', handleCodeInApp: true };
 
-    // Tiny state
     const state = {
-      profile: null,        // {role, orgOwner, email, name}
-      employees: [],        // [{id, name, email, subscribed}]
-      shifts: [],           // [{id, date, empName, start, end}]
-      schedScope: 'all'     // 'mine' | 'all'
+      profile: null,
+      employees: [],
+      shifts: [],
+      schedScope: 'all',
+      brand: null
     };
+
+    // ----- Branding helpers -----
+    function applyBrand(brand){
+      const name = brand?.brandName || 'Artemis Skys';
+      const logo = brand?.brandLogoUrl || '';
+      const bg   = brand?.brandBgUrl || (typeof DEFAULT_BG !== 'undefined' ? DEFAULT_BG : '');
+
+      const span = document.getElementById('brand-name'); if (span) span.textContent = name;
+      const spanPrev = document.getElementById('brand-name-preview'); if (spanPrev) spanPrev.textContent = name;
+
+      const img = document.getElementById('brand-logo');
+      const imgPrev = document.getElementById('brand-logo-preview');
+      const fallback = document.getElementById('fallback-logo');
+      if (logo) {
+        if (img) { img.src = logo; img.style.display='block'; }
+        if (imgPrev) { imgPrev.src = logo; imgPrev.style.display='block'; }
+        if (fallback) fallback.style.display='none';
+      } else {
+        if (img) img.style.display='none';
+        if (imgPrev) imgPrev.style.display='none';
+        if (fallback) fallback.style.display='block';
+      }
+      // Backgrounds
+      try{
+        document.body.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('${bg}')`;
+        const sky = document.querySelector('.sky');
+        if (sky) sky.style.backgroundImage = `linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('${bg}')`;
+      }catch{}
+    }
+
+    async function saveBranding(){
+      if (!orgPath()) return alert('No org available');
+      const brandName = (document.getElementById('brand-name-input')?.value || '').trim();
+      const brandLogoUrl = (document.getElementById('brand-logo-input')?.value || '').trim();
+      const brandBgUrl = (document.getElementById('brand-bg-input')?.value || '').trim();
+      try{
+        await setDoc(doc(db, orgPath()), { brandName, brandLogoUrl, brandBgUrl, updatedAt: serverTimestamp() }, { merge:true });
+        alert('Branding saved.');
+      }catch(e){ console.warn('branding save failed', e); alert('Could not save branding (rules?).'); }
+    }
+    document.getElementById('save-brand').onclick = saveBranding;
 
     // ----- Roles & Org -----
     async function ensureProfile(user){
@@ -517,13 +564,11 @@
         const pRef = doc(db, 'profiles', user.uid);
         const snap = await getDoc(pRef);
         if (!snap.exists()) {
-          // First signup becomes admin of own org
           const profile = { email: user.email, name: user.displayName || user.email, role: 'admin', orgOwner: user.uid, createdAt: serverTimestamp() };
           await setDoc(pRef, profile, {merge:true});
           return profile;
         }
         let prof = snap.data();
-        // If employee, attach org from pending invite (email match)
         if (!prof.orgOwner) {
           const qy = query(collection(db, 'invites'), where('email','==', user.email), where('status','==','pending'));
           const invs = await getDocs(qy);
@@ -537,7 +582,6 @@
         return prof;
       }catch(e){
         console.warn('ensureProfile failed (rules?) → using local fallback', e?.message||e);
-        // Fallback lets user see UI; Firestore actions may still fail until rules fixed
         return { email: user.email, name: user.displayName || user.email, role: 'admin', orgOwner: user.uid };
       }
     }
@@ -576,17 +620,30 @@
           state.profile = await ensureProfile(user);
         }catch(e){ setWarn(true, 'Profile load failed. Check Firestore rules.'); }
         document.getElementById('whoami').textContent = `${user.email}${verified ? '' : ' (unverified)'}`;
-        document.getElementById('session-user').textContent = `${(state.profile?.role||'USER').toUpperCase()} · ${user.email}`;
+        const roleTag = (state.profile?.role||'USER').toUpperCase() + ' · ' + user.email;
+        document.getElementById('session-user').textContent = roleTag;
+        document.getElementById('session-user-sched').textContent = roleTag;
+        document.getElementById('session-user-inv').textContent = roleTag;
 
-        // Role-based UI & default scope
         const admin = state.profile?.role === 'admin';
-        document.getElementById('admin-only').classList.toggle('hidden', !admin);
-        document.getElementById('employee-only').classList.toggle('hidden', admin);
+        window._role = admin ? 'admin' : 'employee';
+
+        // Menu cards: employees see only scheduling
+        document.getElementById('menu-inventory').classList.toggle('hidden', !admin);
+
+        // Show branding panel for admin
+        document.getElementById('brand-panel').classList.toggle('hidden', !admin);
+
+        // Default scope for schedule
         state.schedScope = admin ? 'all' : 'mine';
         paintViewTabs();
+
+        // Start listeners
         startOrgListeners();
 
+        // Show the app menu; show verify banner but allow usage
         window.showSection('app');
+        window.showAppPage('menu');
         resendBtn.classList.toggle('hidden', verified);
         if (!verified) setWarn(true, 'Your email is not verified yet. You can keep using the app; click “Resend verification” or check your inbox.');
       } else {
@@ -608,6 +665,8 @@
       try{
         const { user } = await createUserWithEmailAndPassword(auth, email, pass);
         await setDoc(doc(db,'profiles', user.uid), { name, email, role:'admin', orgOwner:user.uid, createdAt: serverTimestamp() }, {merge:true});
+        // create org doc so branding can be saved
+        await setDoc(doc(db, `orgs/${user.uid}`), { brandName: 'Artemis Skys', createdAt: serverTimestamp() }, { merge:true });
         await sendEmailVerification(user, actionCodeSettings);
         alert('Account created. Check your email for a verification link.');
       }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
@@ -619,11 +678,9 @@
       const pass  = document.getElementById('login-pass').value;
       try{
         const { user } = await signInWithEmailAndPassword(auth, email, pass);
-        if(!user.emailVerified) alert('Please verify your email. Use the link we sent at signup.');
         refreshAuthUI();
       }catch(e){
         console.error(e);
-        // Surface common causes nicely
         if (String(e?.code||'').includes('operation-not-allowed')) {
           document.getElementById('auth-banner').classList.remove('hidden');
         }
@@ -631,7 +688,7 @@
       }
     };
 
-    // Email-link sign-in (for employees without passwords)
+    // Email-link sign-in
     magicBtn.onclick = async () => {
       const email = document.getElementById('login-email').value.trim();
       if(!email) return alert('Enter your email first.');
@@ -678,12 +735,11 @@
       const mode = params.get('mode');
       const oobCode = params.get('oobCode');
 
-      // Email-link sign-in
       if (isSignInWithEmailLink(auth, href)) {
         let email = window.localStorage.getItem('as_invite_email');
         if (!email) email = prompt('Confirm your email for sign-in:');
         try{
-          const {user} = await signInWithEmailLink(auth, email, href);
+          await signInWithEmailLink(auth, email, href);
           window.localStorage.removeItem('as_invite_email');
           alert('Signed in by email link.');
           history.replaceState({}, '', location.pathname);
@@ -692,16 +748,14 @@
         return;
       }
 
-      // Verify email
       if (mode === 'verifyEmail' && oobCode) {
-        try { await applyActionCode(auth, oobCode); alert('Email verified! You can now log in.'); }
+        try { await applyActionCode(auth, oobCode); alert('Email verified!'); }
         catch (e){ console.error('verifyEmail failed', e); alert('Verification link invalid or expired.'); }
         history.replaceState({}, '', location.pathname);
         refreshAuthUI();
         return;
       }
 
-      // Reset password
       if (mode === 'resetPassword' && oobCode) {
         try {
           const email = await verifyPasswordResetCode(auth, oobCode);
@@ -734,12 +788,30 @@
     };
 
     // ----- Firestore listeners -----
-    let unsubEmployees = null, unsubShifts = null;
-    function stopOrgListeners(){ unsubEmployees?.(); unsubShifts?.(); }
+    let unsubEmployees = null, unsubShifts = null, unsubBrand = null;
+    function stopOrgListeners(){ unsubEmployees?.(); unsubShifts?.(); unsubBrand?.(); }
 
     function startOrgListeners(){
       stopOrgListeners();
       const base = orgPath(); if (!base) return;
+
+      // Brand doc (org root)
+      try{
+        const orgRef = doc(db, base);
+        unsubBrand = onSnapshot(orgRef, { next:(snap)=>{
+          state.brand = snap.exists() ? snap.data() : null;
+          applyBrand(state.brand);
+          // Populate inputs for admin
+          if (window._role === 'admin') {
+            document.getElementById('brand-name-input').value = state.brand?.brandName || '';
+            document.getElementById('brand-logo-input').value = state.brand?.brandLogoUrl || '';
+            document.getElementById('brand-bg-input').value   = state.brand?.brandBgUrl || '';
+          }
+        }, error:(err)=>{
+          console.warn('brand snapshot error', err);
+          applyBrand(null);
+        }});
+      }catch(e){ console.warn('Brand listener failed:', e); }
 
       // Employees
       try{
@@ -749,10 +821,9 @@
           paintEmployees();
           paintShiftOptions();
           paintWeek();
-          // bind employee self-pref
           const me = auth.currentUser?.email?.toLowerCase();
           const mine = state.employees.find(e => (e.email||'').toLowerCase() === (me||''));
-          if (mine) { const cb = document.getElementById('me-subscribed'); if (cb) cb.checked = !!mine.subscribed; }
+          const cb = document.getElementById('me-subscribed'); if (cb) cb.checked = !!mine?.subscribed;
         }, error:(err)=>{
           console.warn('employees snapshot error', err);
           setWarn(true, 'Cannot read employees. Check Firestore rules.');
@@ -791,7 +862,6 @@
       }catch(e){ setWarn(true, 'Add employee failed (rules?)'); }
     };
 
-    // Invite by email link
     document.getElementById('invite-emp').onclick = async ()=>{
       const name = document.getElementById('emp-name').value.trim();
       const email = document.getElementById('emp-email').value.trim();
@@ -823,7 +893,6 @@
           <td>${admin ? `<button class="btn ghost small" data-del="${e.id}">Remove</button>` : ''}</td>`;
         tbody.appendChild(tr);
       });
-      // Admin toggles & deletes
       if (state.profile?.role==='admin') {
         tbody.querySelectorAll('[data-sub]').forEach(el=>{
           el.onchange = async ()=>{
@@ -840,7 +909,6 @@
           };
         });
       }
-      // Employee self-pref toggle
       const meToggle = document.getElementById('me-subscribed');
       if (meToggle) {
         meToggle.onchange = async ()=>{
@@ -860,6 +928,12 @@
       tabs.forEach(t=>{
         t.classList.toggle('active', t.dataset.scope === state.schedScope);
         t.onclick = ()=>{ state.schedScope = t.dataset.scope; paintViewTabs(); paintWeek(); };
+        // Employees cannot view ALL unless there are no name matches (fallback to all names)
+        if (window._role !== 'admin') {
+          if (t.dataset.scope === 'all') t.style.display = 'none';
+        } else {
+          if (t.dataset.scope === 'all') t.style.display = '';
+        }
       });
     }
 
@@ -889,10 +963,12 @@
     };
 
     document.getElementById('refresh-week').onclick = paintWeek;
-    document.getElementById('week-start').value = weekStartISO();
+    const wsi = document.getElementById('week-start'); if (wsi) wsi.value = weekStartISO();
 
     function paintWeek(){
-      const start = new Date(document.getElementById('week-start').value || weekStartISO());
+      const startInput = document.getElementById('week-start');
+      if (!startInput) return;
+      const start = new Date(startInput.value || weekStartISO());
       const days = [...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return d; });
       const head = document.getElementById('week-head'); head.innerHTML='';
       const htr = document.createElement('tr');
@@ -901,11 +977,10 @@
 
       const body = document.getElementById('week-body'); body.innerHTML='';
 
-      // Determine which employee names to show
       const meEmail = (auth.currentUser?.email||'').toLowerCase();
       const myNames = state.employees.filter(e=> (e.email||'').toLowerCase()===meEmail).map(e=>e.name).filter(Boolean);
       const allNames = [...new Set(state.employees.map(e=>e.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
-      const names = (state.schedScope==='mine' && myNames.length) ? myNames : allNames;
+      const names = (state.schedScope==='mine' && myNames.length) ? myNames : (window._role==='admin' ? allNames : myNames.length ? myNames : allNames);
 
       names.forEach(name=>{
         const tr = document.createElement('tr');
@@ -937,47 +1012,39 @@
       }catch(e){ console.warn('Email send skipped/failed:', e?.message||e); }
     }
 
-    // ----- Auth state listener -----
     onAuthStateChanged(auth, ()=>{ refreshAuthUI(); });
   </script>
 
   <!--
-  ===== Recommended Firestore Security Rules (paste in Firebase Console → Firestore → Rules) =====
+  ===== Firestore Security Rules (update your console) =====
 
   rules_version = '2';
   service cloud.firestore {
     match /databases/{database}/documents {
-
-      // Profiles: users can read their profile; admins set their own; server may set roles manually later.
       match /profiles/{uid} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
-
-      // Invites: admins can create; anyone can read their own (by email is tricky client-side; keep create-only).
       match /invites/{inviteId} {
-        allow create: if request.auth != null; // admin check happens in app; for stricter control, store role in profile and check it here
-        allow read, update, delete: if false;  // manage via backend/console if needed
+        allow create: if request.auth != null;
+        allow read, update, delete: if false;
       }
-
-      // Organizations (by admin UID as orgOwner)
       match /orgs/{orgOwner} {
         allow read: if request.auth != null && (
           request.auth.uid == orgOwner ||
           (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
            get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.orgOwner == orgOwner)
         );
+        allow write: if request.auth != null && request.auth.uid == orgOwner; // allow admin to update branding
 
         match /employees/{empId} {
-          allow read: if true; // org-level read was checked above
+          allow read: if true;
           allow create, update, delete: if request.auth != null && request.auth.uid == orgOwner;
         }
-
         match /shifts/{shiftId} {
-          allow read: if true; // org-level read was checked above
+          allow read: if true;
           allow create, update, delete: if request.auth != null && request.auth.uid == orgOwner;
         }
       }
-
       match /mail/{docId} {
         allow create: if request.auth != null &&
           exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
@@ -989,3 +1056,4 @@
   -->
 </body>
 </html>
+
