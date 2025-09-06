@@ -586,7 +586,9 @@
         paintViewTabs();
         startOrgListeners();
 
-        if (verified) window.showSection('app'); else window.showSection('auth');
+        window.showSection('app');
+        resendBtn.classList.toggle('hidden', verified);
+        if (!verified) setWarn(true, 'Your email is not verified yet. You can keep using the app; click “Resend verification” or check your inbox.');
       } else {
         window.showSection('home');
         stopOrgListeners();
@@ -816,9 +818,9 @@
           <td>${e.name||''}</td>
           <td>${e.email||''}</td>
           <td>${admin
-              ? `<input type=\"checkbox\" data-sub=\"${e.id}\" ${e.subscribed?'checked':''}/>`
+              ? `<input type="checkbox" data-sub="${e.id}" ${e.subscribed?'checked':''}/>`
               : `${e.subscribed ? 'Yes':'No'}`}</td>
-          <td>${admin ? `<button class=\"btn ghost small\" data-del=\"${e.id}\">Remove</button>` : ''}</td>`;
+          <td>${admin ? `<button class="btn ghost small" data-del="${e.id}">Remove</button>` : ''}</td>`;
         tbody.appendChild(tr);
       });
       // Admin toggles & deletes
@@ -987,4 +989,3 @@
   -->
 </body>
 </html>
-
