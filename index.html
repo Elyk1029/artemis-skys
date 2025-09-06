@@ -63,6 +63,7 @@
     .notice{font-size:.95rem; color:var(--muted)}
     .tag{border:1px solid rgba(255,255,255,.2); border-radius:999px; padding:4px 8px; font-size:.8rem; color:var(--muted); background:rgba(50,50,50,.7)}
     footer{opacity:.85; padding:44px 16px; text-align:center; color:var(--muted)}
+    .banner{border:1px solid rgba(245,158,11,.5); background:rgba(245,158,11,.15); color:#fde68a; border-radius:var(--radius); padding:10px 12px; margin:8px 0}
   </style>
 </head>
 <body>
@@ -106,29 +107,29 @@
     <!-- LANDING -->
     <section id="home" class="hero">
       <h1>Scheduling & Inventory that feels calm and reliable.</h1>
-      <p>Artemis Skys is now multi-user: invite employees, they sign in by email link, view their schedule in real-time, and (optionally) receive email updates.</p>
+      <p>Invite employees with email-link sign-in. Employees can view <strong>only their shifts</strong> or switch to <strong>Full view</strong> if allowed.</p>
       <div class="row" style="margin-top:18px; gap:12px">
         <button class="btn" id="cta-get-started">Get Started</button>
         <button class="btn secondary" id="cta-learn">Learn More</button>
       </div>
       <div class="cards">
-        <div class="card"><h3>Unified Hub</h3><p class="muted">Manage shifts and inventory; employees see live schedules.</p></div>
-        <div class="card"><h3>Firestore</h3><p class="muted">Multi-user data sync & role control.</p></div>
-        <div class="card"><h3>Email Updates</h3><p class="muted">Send notifications via the Trigger Email extension.</p></div>
+        <div class="card"><h3>Email Link Sign-in</h3><p class="muted">No passwords needed for employees.</p></div>
+        <div class="card"><h3>Per-employee View</h3><p class="muted">Default to “My Shifts.”</p></div>
+        <div class="card"><h3>Admin Full View</h3><p class="muted">Switch to all schedules with one click.</p></div>
       </div>
     </section>
 
     <section id="about" class="hero hidden">
       <h1>About Artemis Skys</h1>
-      <p>Now with employee invites and read-only viewer mode for staff.</p>
+      <p>A compact multi-user portal for <strong>shifts</strong> and <strong>stock</strong>. Firestore-backed scheduling; local inventory.</p>
     </section>
 
     <section id="more" class="hero hidden">
       <h1>More Info</h1>
       <div class="cards">
-        <div class="card"><h3>Data Portability</h3><p class="muted">Inventory still exportable as CSV/JSON.</p></div>
-        <div class="card"><h3>Privacy</h3><p class="muted">Auth + Firestore rules keep edits to admins.</p></div>
-        <div class="card"><h3>Extensibility</h3><p class="muted">Add roles, PTO, mobile app, more.</p></div>
+        <div class="card"><h3>Data Portability</h3><p class="muted">Inventory export/import as JSON/CSV.</p></div>
+        <div class="card"><h3>Privacy</h3><p class="muted">Only admins can edit schedules.</p></div>
+        <div class="card"><h3>Extensibility</h3><p class="muted">Add PTO, approvals, SMS, more.</p></div>
       </div>
     </section>
 
@@ -138,25 +139,26 @@
         <strong>Quick Start</strong>
         <ol>
           <li>Sign up your admin account, verify email.</li>
-          <li>Invite employees by name + email from the Schedule tab.</li>
-          <li>They’ll get an email-link sign-in; after login, they can view schedules.</li>
-          <li>(Optional) Install Trigger Email extension to send updates automatically.</li>
+          <li>Invite employees from the Schedule tab (email link sign-in).</li>
+          <li>Employees open the link to sign in and see “My Shifts.”</li>
         </ol>
       </div>
     </section>
 
     <!-- AUTH -->
     <section id="auth" class="hero hidden">
+      <div id="auth-banner" class="banner hidden">If you can’t log in, make sure your domain is in Firebase Auth <em>Authorized domains</em> and Email/Password + Email Link methods are enabled.</div>
       <div class="two-col">
         <div class="panel">
           <h3>Log in</h3>
           <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
           <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
-          <div class="row right" style="gap:8px">
+          <div class="row right" style="gap:8px; flex-wrap:wrap">
             <button class="btn secondary" id="forgot-pass">Forgot password</button>
             <button class="btn" id="do-login">Enter</button>
+            <button class="btn ghost" id="login-magic" title="Send yourself a sign-in link">Email me a sign-in link</button>
           </div>
-          <p class="help">Admins manage schedules; employees get read-only view.</p>
+          <p class="help">Employees without a password can use the email link option.</p>
         </div>
         <div class="panel">
           <h3>Sign up (Admin)</h3>
@@ -185,6 +187,7 @@
 
     <!-- APP -->
     <section id="app" class="hero hidden">
+      <div id="warn" class="banner hidden">Limited mode: Firestore rules may be blocking reads/writes. Check your Firestore Security Rules.</div>
       <div class="row" style="margin-bottom:12px">
         <div class="tabs" id="app-tabs">
           <div class="tab active" data-tab="schedule">Schedule</div>
@@ -203,7 +206,7 @@
             <h3>Employees</h3>
             <div class="field"><label>Name</label><input id="emp-name" placeholder="Employee name"/></div>
             <div class="field"><label>Email</label><input id="emp-email" type="email" placeholder="person@company.com"/></div>
-            <div class="row right" style="gap:8px">
+            <div class="row right" style="gap:8px; flex-wrap:wrap">
               <button class="btn small" id="invite-emp">Invite by Email Link</button>
               <button class="btn secondary small" id="add-emp">Add without sending</button>
             </div>
@@ -234,8 +237,11 @@
         </div>
 
         <div class="panel" style="margin-top:16px">
-          <div class="row" style="gap:8px; align-items:center">
-            <h3 style="margin:0">Week View</h3>
+          <div class="row" style="gap:8px; align-items:center; flex-wrap:wrap">
+            <div class="tabs" id="view-tabs">
+              <div class="tab" data-scope="mine">My Shifts</div>
+              <div class="tab" data-scope="all">All Schedules</div>
+            </div>
             <div class="spacer"></div>
             <input id="week-start" type="date"/>
             <button class="btn small" id="refresh-week">Refresh</button>
@@ -249,7 +255,7 @@
         </div>
       </div>
 
-      <!-- INVENTORY (local-only, unchanged) -->
+      <!-- INVENTORY (local-only) -->
       <div id="tab-inventory" class="hidden">
         <div class="two-col">
           <div class="panel">
@@ -292,7 +298,7 @@
         </div>
       </div>
 
-      <!-- DATA (inventory export/import local) -->
+      <!-- DATA (inventory local import/export) -->
       <div id="tab-data" class="hidden">
         <div class="two-col">
           <div class="panel">
@@ -477,7 +483,7 @@
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
 
-    // ---- Your Firebase config ----
+    // ---- Firebase config ----
     const firebaseConfig = {
       apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
       authDomain: "artemisskys-81c8d.firebaseapp.com",
@@ -493,43 +499,47 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Action code settings for verification, reset, and email-link sign-in
-    const actionCodeSettings = {
-      url: "https://artemisskys.com/", // your deployed origin
-      handleCodeInApp: true
-    };
+    // Use current origin for action links (works on localhost & prod). Be sure to authorize both domains in Firebase Auth settings.
+    const ORIGIN = window.location.origin;
+    const actionCodeSettings = { url: ORIGIN + '/', handleCodeInApp: true };
 
     // Tiny state
     const state = {
       profile: null,        // {role, orgOwner, email, name}
       employees: [],        // [{id, name, email, subscribed}]
       shifts: [],           // [{id, date, empName, start, end}]
+      schedScope: 'all'     // 'mine' | 'all'
     };
 
     // ----- Roles & Org -----
     async function ensureProfile(user){
-      const pRef = doc(db, 'profiles', user.uid);
-      const snap = await getDoc(pRef);
-      if (!snap.exists()) {
-        // First signup becomes admin of own org
-        const profile = { email: user.email, name: user.displayName || user.email, role: 'admin', orgOwner: user.uid, createdAt: serverTimestamp() };
-        await setDoc(pRef, profile);
-        return profile;
-      }
-      let prof = snap.data();
-
-      // If employee, attach org from pending invite (email match)
-      if (!prof.orgOwner) {
-        const q = query(collection(db, 'invites'), where('email','==', user.email), where('status','==','pending'));
-        const invs = await getDocs(q);
-        if (!invs.empty) {
-          const inv = invs.docs[0]; const {orgOwner,name} = inv.data();
-          prof = {...prof, role: 'employee', orgOwner, name: prof.name || name};
-          await setDoc(pRef, prof, {merge:true});
-          await updateDoc(inv.ref, {status:'used', usedAt: serverTimestamp()});
+      try{
+        const pRef = doc(db, 'profiles', user.uid);
+        const snap = await getDoc(pRef);
+        if (!snap.exists()) {
+          // First signup becomes admin of own org
+          const profile = { email: user.email, name: user.displayName || user.email, role: 'admin', orgOwner: user.uid, createdAt: serverTimestamp() };
+          await setDoc(pRef, profile, {merge:true});
+          return profile;
         }
+        let prof = snap.data();
+        // If employee, attach org from pending invite (email match)
+        if (!prof.orgOwner) {
+          const qy = query(collection(db, 'invites'), where('email','==', user.email), where('status','==','pending'));
+          const invs = await getDocs(qy);
+          if (!invs.empty) {
+            const inv = invs.docs[0]; const {orgOwner,name} = inv.data();
+            prof = {...prof, role: 'employee', orgOwner, name: prof.name || name};
+            await setDoc(pRef, prof, {merge:true});
+            await updateDoc(inv.ref, {status:'used', usedAt: serverTimestamp()});
+          }
+        }
+        return prof;
+      }catch(e){
+        console.warn('ensureProfile failed (rules?) → using local fallback', e?.message||e);
+        // Fallback lets user see UI; Firestore actions may still fail until rules fixed
+        return { email: user.email, name: user.displayName || user.email, role: 'admin', orgOwner: user.uid };
       }
-      return prof;
     }
 
     function orgPath(){
@@ -545,6 +555,14 @@
     const btnLogout = document.getElementById('btn-logout');
     const forgotBtn = document.getElementById('forgot-pass');
     const resendBtn = document.getElementById('resend-verify');
+    const magicBtn  = document.getElementById('login-magic');
+
+    function setWarn(on, msg){
+      const el = document.getElementById('warn');
+      if (!el) return;
+      el.classList.toggle('hidden', !on);
+      if (msg) el.textContent = msg;
+    }
 
     async function refreshAuthUI(){
       const user = auth.currentUser;
@@ -552,21 +570,22 @@
       document.getElementById('auth-buttons').classList.toggle('hidden', authed);
       document.getElementById('user-badge').classList.toggle('hidden', !authed);
       if (authed) {
-        await user.reload?.();
+        try{ await user.reload?.(); }catch{}
         const verified = user.emailVerified;
-        state.profile = await ensureProfile(user);
+        try{
+          state.profile = await ensureProfile(user);
+        }catch(e){ setWarn(true, 'Profile load failed. Check Firestore rules.'); }
         document.getElementById('whoami').textContent = `${user.email}${verified ? '' : ' (unverified)'}`;
-        document.getElementById('session-user').textContent = `${state.profile.role.toUpperCase()} · ${user.email}`;
+        document.getElementById('session-user').textContent = `${(state.profile?.role||'USER').toUpperCase()} · ${user.email}`;
 
-        // Role-based UI
-        const admin = state.profile.role === 'admin';
+        // Role-based UI & default scope
+        const admin = state.profile?.role === 'admin';
         document.getElementById('admin-only').classList.toggle('hidden', !admin);
         document.getElementById('employee-only').classList.toggle('hidden', admin);
-
-        // Start listeners
+        state.schedScope = admin ? 'all' : 'mine';
+        paintViewTabs();
         startOrgListeners();
 
-        // Route
         if (verified) window.showSection('app'); else window.showSection('auth');
       } else {
         window.showSection('home');
@@ -592,15 +611,39 @@
       }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
     };
 
-    // Login (requires verified email)
+    // Login (email/password)
     doLogin.onclick = async () => {
       const email = document.getElementById('login-email').value.trim();
       const pass  = document.getElementById('login-pass').value;
       try{
         const { user } = await signInWithEmailAndPassword(auth, email, pass);
-        if(!user.emailVerified) alert('Please verify your email first. We sent you a link when you signed up.');
+        if(!user.emailVerified) alert('Please verify your email. Use the link we sent at signup.');
         refreshAuthUI();
-      }catch(e){ console.error(e); alert(e.message || 'Login failed'); }
+      }catch(e){
+        console.error(e);
+        // Surface common causes nicely
+        if (String(e?.code||'').includes('operation-not-allowed')) {
+          document.getElementById('auth-banner').classList.remove('hidden');
+        }
+        alert(e.message || 'Login failed');
+      }
+    };
+
+    // Email-link sign-in (for employees without passwords)
+    magicBtn.onclick = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      if(!email) return alert('Enter your email first.');
+      try{
+        window.localStorage.setItem('as_invite_email', email);
+        await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+        alert('Sign-in link sent. Open it from your email on this device.');
+      }catch(e){
+        console.error(e);
+        if (String(e?.code||'').includes('operation-not-allowed')) {
+          document.getElementById('auth-banner').classList.remove('hidden');
+        }
+        alert(e.message || 'Failed to send sign-in link.');
+      }
     };
 
     // Forgot password
@@ -697,24 +740,34 @@
       const base = orgPath(); if (!base) return;
 
       // Employees
-      const empCol = collection(db, `${base}/employees`);
-      unsubEmployees = onSnapshot(empCol, (snap)=>{
-        state.employees = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>a.name?.localeCompare?.(b.name||'')||0);
-        paintEmployees();
-        paintShiftOptions();
-        paintWeek();
-        // If this is an employee, tie the toggle to their employee doc (by email)
-        const me = auth.currentUser?.email?.toLowerCase();
-        const mine = state.employees.find(e => (e.email||'').toLowerCase() === (me||''));
-        if (mine) { const cb = document.getElementById('me-subscribed'); if (cb) cb.checked = !!mine.subscribed; }
-      });
+      try{
+        const empCol = collection(db, `${base}/employees`);
+        unsubEmployees = onSnapshot(empCol, { next:(snap)=>{
+          state.employees = snap.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>a.name?.localeCompare?.(b.name||'')||0);
+          paintEmployees();
+          paintShiftOptions();
+          paintWeek();
+          // bind employee self-pref
+          const me = auth.currentUser?.email?.toLowerCase();
+          const mine = state.employees.find(e => (e.email||'').toLowerCase() === (me||''));
+          if (mine) { const cb = document.getElementById('me-subscribed'); if (cb) cb.checked = !!mine.subscribed; }
+        }, error:(err)=>{
+          console.warn('employees snapshot error', err);
+          setWarn(true, 'Cannot read employees. Check Firestore rules.');
+        }});
+      }catch(e){ setWarn(true, 'Employees listener failed.'); }
 
       // Shifts
-      const shCol = collection(db, `${base}/shifts`);
-      unsubShifts = onSnapshot(shCol, (snap)=>{
-        state.shifts = snap.docs.map(d=>({id:d.id, ...d.data()}));
-        paintWeek();
-      });
+      try{
+        const shCol = collection(db, `${base}/shifts`);
+        unsubShifts = onSnapshot(shCol, { next:(snap)=>{
+          state.shifts = snap.docs.map(d=>({id:d.id, ...d.data()}));
+          paintWeek();
+        }, error:(err)=>{
+          console.warn('shifts snapshot error', err);
+          setWarn(true, 'Cannot read shifts. Check Firestore rules.');
+        }});
+      }catch(e){ setWarn(true, 'Shifts listener failed.'); }
     }
 
     // ----- Admin: manage employees & invites -----
@@ -730,8 +783,10 @@
       const name = document.getElementById('emp-name').value.trim();
       const email = document.getElementById('emp-email').value.trim();
       if (!name && !email) return alert('Provide a name or email.');
-      await addEmployeeRow({name,email,subscribed:true});
-      document.getElementById('emp-name').value=''; document.getElementById('emp-email').value='';
+      try{
+        await addEmployeeRow({name,email,subscribed:true});
+        document.getElementById('emp-name').value=''; document.getElementById('emp-email').value='';
+      }catch(e){ setWarn(true, 'Add employee failed (rules?)'); }
     };
 
     // Invite by email link
@@ -741,18 +796,13 @@
       if (!email) return alert('Employee email required.');
       const base = orgPath(); if (!base) return alert('No org');
       try{
-        // Create/merge employee entry
         await addEmployeeRow({name,email,subscribed:true});
-        // Create invite record (optional bookkeeping)
-        await addDoc(collection(db, 'invites'), {
-          orgOwner: state.profile.orgOwner, email, name: name || email, status:'pending', createdAt: serverTimestamp()
-        });
-        // Send email sign-in link
+        await addDoc(collection(db, 'invites'), { orgOwner: state.profile.orgOwner, email, name: name || email, status:'pending', createdAt: serverTimestamp() });
         window.localStorage.setItem('as_invite_email', email);
         await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-        alert('Invite sent. Ask them to open the link on their device/email.');
+        alert('Invite sent. Ask them to open the link from their email.');
         document.getElementById('emp-name').value=''; document.getElementById('emp-email').value='';
-      }catch(e){ console.error(e); alert(e.message || 'Failed to send invite. Make sure Email link sign-in is enabled.'); }
+      }catch(e){ console.error(e); setWarn(true, 'Invite failed. Check Auth (Email Link) + Authorized domains.'); alert(e.message || 'Failed to send invite.'); }
     };
 
     function paintEmployees(){
@@ -766,23 +816,25 @@
           <td>${e.name||''}</td>
           <td>${e.email||''}</td>
           <td>${admin
-              ? `<input type="checkbox" data-sub="${e.id}" ${e.subscribed?'checked':''}/>`
+              ? `<input type=\"checkbox\" data-sub=\"${e.id}\" ${e.subscribed?'checked':''}/>`
               : `${e.subscribed ? 'Yes':'No'}`}</td>
-          <td>${admin ? `<button class="btn ghost small" data-del="${e.id}">Remove</button>` : ''}</td>`;
+          <td>${admin ? `<button class=\"btn ghost small\" data-del=\"${e.id}\">Remove</button>` : ''}</td>`;
         tbody.appendChild(tr);
       });
-      // Wire up admin toggles & deletes
+      // Admin toggles & deletes
       if (state.profile?.role==='admin') {
         tbody.querySelectorAll('[data-sub]').forEach(el=>{
           el.onchange = async ()=>{
             const id = el.getAttribute('data-sub');
-            await updateDoc(doc(db, `${orgPath()}/employees/${id}`), {subscribed: el.checked});
+            try{ await updateDoc(doc(db, `${orgPath()}/employees/${id}`), {subscribed: el.checked}); }
+            catch(e){ setWarn(true, 'Update failed (rules?)'); }
           };
         });
         tbody.querySelectorAll('[data-del]').forEach(btn=>{
           btn.onclick = async ()=>{
             if (!confirm('Remove this employee?')) return;
-            await deleteDoc(doc(db, `${orgPath()}/employees/${btn.getAttribute('data-del')}`));
+            try{ await deleteDoc(doc(db, `${orgPath()}/employees/${btn.getAttribute('data-del')}`)); }
+            catch(e){ setWarn(true, 'Delete failed (rules?)'); }
           };
         });
       }
@@ -792,13 +844,23 @@
         meToggle.onchange = async ()=>{
           const me = auth.currentUser?.email?.toLowerCase();
           const mine = state.employees.find(x=> (x.email||'').toLowerCase() === (me||''));
-          if (mine) await updateDoc(doc(db, `${orgPath()}/employees/${mine.id}`), {subscribed: meToggle.checked});
-          else alert('Ask your admin to add your email to the employee list.');
+          if (mine) {
+            try{ await updateDoc(doc(db, `${orgPath()}/employees/${mine.id}`), {subscribed: meToggle.checked}); }
+            catch(e){ setWarn(true, 'Preference save failed.'); }
+          } else alert('Ask your admin to add your email to the employee list.');
         };
       }
     }
 
-    // ----- Shifts -----
+    // ----- Schedule view (My vs All) -----
+    function paintViewTabs(){
+      const tabs = document.querySelectorAll('#view-tabs .tab');
+      tabs.forEach(t=>{
+        t.classList.toggle('active', t.dataset.scope === state.schedScope);
+        t.onclick = ()=>{ state.schedScope = t.dataset.scope; paintViewTabs(); paintWeek(); };
+      });
+    }
+
     function paintShiftOptions(){
       const sel = document.getElementById('shift-emp'); if (!sel) return;
       sel.innerHTML='';
@@ -821,7 +883,7 @@
         await addDoc(collection(db, `${base}/shifts`), {date, empName:emp, start, end, createdAt: serverTimestamp(), updatedAt: serverTimestamp()});
         if (shouldEmail) await emailShiftNotice({date, empName: emp, start, end});
         alert('Shift added.');
-      }catch(e){ console.error(e); alert(e.message || 'Failed to add shift'); }
+      }catch(e){ console.error(e); setWarn(true, 'Add shift failed (rules?)'); }
     };
 
     document.getElementById('refresh-week').onclick = paintWeek;
@@ -836,7 +898,13 @@
       head.appendChild(htr);
 
       const body = document.getElementById('week-body'); body.innerHTML='';
-      const names = [...new Set(state.employees.map(e=>e.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+
+      // Determine which employee names to show
+      const meEmail = (auth.currentUser?.email||'').toLowerCase();
+      const myNames = state.employees.filter(e=> (e.email||'').toLowerCase()===meEmail).map(e=>e.name).filter(Boolean);
+      const allNames = [...new Set(state.employees.map(e=>e.name).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      const names = (state.schedScope==='mine' && myNames.length) ? myNames : allNames;
+
       names.forEach(name=>{
         const tr = document.createElement('tr');
         const tds = days.map(d=>{
@@ -852,7 +920,6 @@
     // ----- Email notifications (via Trigger Email extension) -----
     async function emailShiftNotice(shift){
       try{
-        // who gets emails
         const to = state.employees.filter(e=>e.subscribed && e.email).map(e=>e.email);
         if (to.length===0) return;
         const subject = `New shift posted: ${shift.empName} on ${shift.date}`;
@@ -864,11 +931,8 @@
             <p><strong>Who:</strong> ${shift.empName}</p>
             <p style="color:#555">— Artemis Skys</p>
           </div>`;
-        await addDoc(collection(db, 'mail'), { to, message: { subject, text, html } }); // works if Trigger Email is installed
-      }catch(e){
-        // Safe to ignore if extension not installed or security rules block it
-        console.warn('Email send skipped/failed:', e?.message||e);
-      }
+        await addDoc(collection(db, 'mail'), { to, message: { subject, text, html } });
+      }catch(e){ console.warn('Email send skipped/failed:', e?.message||e); }
     }
 
     // ----- Auth state listener -----
@@ -896,32 +960,25 @@
       // Organizations (by admin UID as orgOwner)
       match /orgs/{orgOwner} {
         allow read: if request.auth != null && (
-          request.auth.uid == orgOwner || // admin/owner
-          // employee: has profile pointing to this org
-          exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.orgOwner == orgOwner
+          request.auth.uid == orgOwner ||
+          (exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
+           get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.orgOwner == orgOwner)
         );
 
-        // Employees subcollection
         match /employees/{empId} {
           allow read: if true; // org-level read was checked above
-          allow create, update, delete: if request.auth != null &&
-            request.auth.uid == orgOwner; // only admin/owner edits
+          allow create, update, delete: if request.auth != null && request.auth.uid == orgOwner;
         }
 
-        // Shifts subcollection
         match /shifts/{shiftId} {
           allow read: if true; // org-level read was checked above
-          allow create, update, delete: if request.auth != null &&
-            request.auth.uid == orgOwner; // only admin/owner edits
+          allow create, update, delete: if request.auth != null && request.auth.uid == orgOwner;
         }
       }
 
-      // Trigger Email extension input collection
       match /mail/{docId} {
-        allow create: if request.auth != null && // must be authenticated
+        allow create: if request.auth != null &&
           exists(/databases/$(database)/documents/profiles/$(request.auth.uid)) &&
-          // only admins (org owners) can send
           get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
         allow read, update, delete: if false;
       }
@@ -930,3 +987,4 @@
   -->
 </body>
 </html>
+
