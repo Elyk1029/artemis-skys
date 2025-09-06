@@ -358,6 +358,33 @@
     })();
   </script>
 
+  
+  <!-- ===== Early login triggers (before Firebase) ===== -->
+  <script>
+    (function(){
+      function queueLogin(){
+        try {
+          const email = document.getElementById('login-email')?.value?.trim() || '';
+          const pass  = document.getElementById('login-pass')?.value || '';
+          if (window._doLogin) { window._doLogin(email, pass); }
+          else { window._pendingLogin = { email, pass }; }
+        } catch {}
+      }
+      function onEnter(e){
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          queueLogin();
+        }
+      }
+      const btn = document.getElementById('do-login');
+      const em  = document.getElementById('login-email');
+      const pw  = document.getElementById('login-pass');
+      if (btn) btn.addEventListener('click', (e)=>{ e.preventDefault(); queueLogin(); });
+      if (em)  em.addEventListener('keydown', onEnter);
+      if (pw)  pw.addEventListener('keydown', onEnter);
+    })();
+  </script>
+
   <!-- ========= App utilities (inventory local) ========= -->
   <script>
     const DEFAULT_BG = 'https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg';
@@ -696,21 +723,40 @@
       }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
     };
 
-    // Login (email/password)
-    doLogin.onclick = async () => {
-      const email = document.getElementById('login-email').value.trim();
-      const pass  = document.getElementById('login-pass').value;
-      try{
-        const { user } = await signInWithEmailAndPassword(auth, email, pass);
-        refreshAuthUI();
-      }catch(e){
-        console.error(e);
-        if (String(e?.code||'').includes('operation-not-allowed')) {
-          document.getElementById('auth-banner').classList.remove('hidden');
-        }
-        alert(e.message || 'Login failed');
-      }
-    };
+    
+// Login (email/password) with centralized function + Enter key support
+window._authReady = true;
+window._doLogin = async (emailArg, passArg) => {
+  const email = (emailArg ?? document.getElementById('login-email')?.value || '').trim();
+  const pass  = (passArg ?? document.getElementById('login-pass')?.value || '');
+  if (!email || !pass) { alert('Enter email and password, or use the email link option.'); return; }
+  try{
+    const { user } = await signInWithEmailAndPassword(auth, email, pass);
+    refreshAuthUI();
+  }catch(e){
+    console.error(e);
+    if (String(e?.code||'').includes('operation-not-allowed')) {
+      document.getElementById('auth-banner').classList.remove('hidden');
+    }
+    alert(e.message || 'Login failed');
+  }
+};
+
+doLogin.onclick = (e) => { e.preventDefault(); window._doLogin(); };
+
+// Bind Enter key in both fields (in case early handler missed it)
+['login-email','login-pass'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter'){ ev.preventDefault(); window._doLogin(); } });
+});
+
+// If a login was queued before Firebase loaded, execute it now
+if (window._pendingLogin) {
+  const { email, pass } = window._pendingLogin;
+  try { delete window._pendingLogin; } catch {}
+  setTimeout(()=> window._doLogin(email, pass), 0);
+}
+
 
     // Email-link sign-in
     magicBtn.onclick = async () => {
