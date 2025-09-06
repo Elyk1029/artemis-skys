@@ -22,12 +22,13 @@
     body{
       margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--text);
       background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg') center/cover no-repeat fixed;
-      background-size: 110% auto; /* slightly zoomed out */
+      background-size: 110% auto;
     }
     .sky{position:fixed; inset:0; z-index:-1; pointer-events:none;
       background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.35)), url('https://upload.wikimedia.org/wikipedia/commons/0/02/FullMoon2010.jpg') center/cover no-repeat fixed;
       filter: brightness(.55);
     }
+
     a{color:var(--accent)}
     header{position:sticky; top:0; z-index:20; background:rgba(34,34,34,.88); backdrop-filter: blur(10px); border-bottom:1px solid rgba(255,255,255,.08)}
     .wrap{max-width:1100px; margin:0 auto; padding:16px}
@@ -63,6 +64,7 @@
     .field{display:flex; gap:10px; margin:8px 0; align-items:center}
     .field input,.field select, .field textarea{background:#222; color:var(--text); border:1px solid rgba(255,255,255,.15); border-radius:12px; padding:10px 12px; width:100%}
     .field label{min-width:120px; color:var(--muted)}
+    .help{font-size:.9rem; color:var(--muted); margin-top:6px}
 
     table{width:100%; border-collapse:collapse; font-size:.95rem}
     th,td{border-bottom:1px solid rgba(255,255,255,.1); padding:10px; text-align:left}
@@ -82,20 +84,15 @@
   </style>
 </head>
 <body>
-  <!-- Full lunar background layer -->
   <div class="sky" aria-hidden="true"></div>
 
   <header>
     <div class="wrap row">
       <div class="logo" id="go-home" style="cursor:pointer">
-        <!-- Sky/Moon/Cloud SVG Logo -->
         <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#bbbbbb"/>
-              <stop offset="100%" stop-color="#e0e0e0"/>
-            </linearGradient>
-          </defs>
+          <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#bbbbbb"/><stop offset="100%" stop-color="#e0e0e0"/>
+          </linearGradient></defs>
           <path d="M40 10a16 16 0 1 0 14 24A18 18 0 1 1 40 10Z" fill="url(#g)"/>
           <path d="M16 44c0-5.523 4.477-10 10-10a9.98 9.98 0 0 1 7.14 2.96A12 12 0 1 1 46 52H20a8 8 0 0 1-8-8Z" fill="#e5e7eb" opacity=".9"/>
         </svg>
@@ -107,19 +104,24 @@
         <a href="#more" data-nav>More Info</a>
         <a href="#host" data-nav>For Companies</a>
       </nav>
+
+      <!-- Shown when logged out -->
       <div class="row right" id="auth-buttons">
         <button class="btn small" id="btn-login">Log in</button>
         <button class="btn ghost small" id="btn-signup">Sign up</button>
       </div>
+
+      <!-- Shown when logged in -->
       <div class="row right hidden" id="user-badge">
         <span class="tag" id="whoami">Signed in</span>
         <button class="btn secondary small" id="btn-logout">Log out</button>
+        <button class="btn ghost small hidden" id="resend-verify">Resend verification</button>
       </div>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- LANDING / MARKETING -->
+    <!-- LANDING -->
     <section id="home" class="hero">
       <h1>Scheduling & Inventory that feels calm and reliable.</h1>
       <p>
@@ -132,27 +134,15 @@
       </div>
 
       <div class="cards">
-        <div class="card">
-          <h3>Unified Hub</h3>
-          <p class="muted">Manage shifts and stock without switching apps.</p>
-        </div>
-        <div class="card">
-          <h3>Local Storage</h3>
-          <p class="muted">Data saves to your browser via <code>localStorage</code>. Export/Import for backups.</p>
-        </div>
-        <div class="card">
-          <h3>Simple Deploy</h3>
-          <p class="muted">Drop this HTML on any static host and you're live.</p>
-        </div>
+        <div class="card"><h3>Unified Hub</h3><p class="muted">Manage shifts and stock without switching apps.</p></div>
+        <div class="card"><h3>Local Storage</h3><p class="muted">Use localStorage now; hook up a DB later.</p></div>
+        <div class="card"><h3>Simple Deploy</h3><p class="muted">Drop this HTML on any static host and you're live.</p></div>
       </div>
     </section>
 
     <section id="about" class="hero hidden">
       <h1>About Artemis Skys</h1>
-      <p>
-        A compact operations portal for small teams, focused on two critical workflows:
-        <strong>who is working when</strong> and <strong>what inventory you have</strong>. This version stores data locally in your browser.
-      </p>
+      <p>A compact operations portal for small teams focused on <strong>shifts</strong> and <strong>stock</strong>.</p>
       <div class="two-col" style="margin-top:10px">
         <div class="panel">
           <h3>Key Features</h3>
@@ -161,15 +151,13 @@
             <li>Shift templates & quick assign</li>
             <li>Inventory add/receive/issue with audit log</li>
             <li>CSV/JSON export and import</li>
-            <li>Role-ready structure for future expansion</li>
           </ul>
         </div>
         <div class="panel">
           <h3>Tech Notes</h3>
           <ul>
-            <li>Pure HTML/CSS/JS — no build step</li>
+            <li>Pure HTML/CSS/JS</li>
             <li>LocalStorage for persistence</li>
-            <li>Modular code & simple state store</li>
             <li>Easily swap auth for your backend</li>
           </ul>
         </div>
@@ -179,24 +167,15 @@
     <section id="more" class="hero hidden">
       <h1>More Info</h1>
       <div class="cards">
-        <div class="card">
-          <h3>Data Portability</h3>
-          <p class="muted">Export schedules, inventory, and users as JSON. Re-import anytime.</p>
-        </div>
-        <div class="card">
-          <h3>Privacy</h3>
-          <p class="muted">Data stays in your browser unless you export it. For production, connect your own DB and auth provider.</p>
-        </div>
-        <div class="card">
-          <h3>Extensibility</h3>
-          <p class="muted">Add roles (Admin, Manager, Staff), notifications, and reporting with minimal changes.</p>
-        </div>
+        <div class="card"><h3>Data Portability</h3><p class="muted">Export everything as JSON.</p></div>
+        <div class="card"><h3>Privacy</h3><p class="muted">Data stays in your browser unless you export.</p></div>
+        <div class="card"><h3>Extensibility</h3><p class="muted">Add roles, notifications, reporting.</p></div>
       </div>
     </section>
 
     <section id="host" class="hero hidden">
       <h1>For Companies</h1>
-      <p class="muted">Host scheduling and inventory in one place. Create an account or log in. Add employees, build shifts, track stock, and export data.</p>
+      <p class="muted">Create an account or log in to start building schedules and tracking inventory.</p>
       <div class="panel">
         <strong>Quick Start</strong>
         <ol>
@@ -208,18 +187,18 @@
       </div>
     </section>
 
-    <!-- AUTH & APP -->
+    <!-- AUTH -->
     <section id="auth" class="hero hidden">
       <div class="two-col">
         <div class="panel">
           <h3>Log in</h3>
           <div class="field"><label>Email</label><input id="login-email" type="email" placeholder="you@company.com"/></div>
           <div class="field"><label>Password</label><input id="login-pass" type="password" placeholder="••••••••"/></div>
-          <div class="row right" style="gap:10px; align-items:center">
+          <div class="row right" style="gap:8px">
+            <button class="btn secondary" id="forgot-pass">Forgot password</button>
             <button class="btn" id="do-login">Enter</button>
-            <a id="forgot-pass" href="javascript:void(0)" class="muted" style="text-decoration:underline">Forgot password?</a>
           </div>
-          <p class="notice">No account? Use <em>Sign up</em> to create an account. We’ll email you a verification link.</p>
+          <p class="help">You must verify your email before you can use the app.</p>
         </div>
         <div class="panel">
           <h3>Sign up</h3>
@@ -227,11 +206,12 @@
           <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"/></div>
           <div class="field"><label>Password</label><input id="su-pass" type="password" placeholder="At least 6 chars"/></div>
           <div class="row right"><button class="btn secondary" id="do-signup">Create Account</button></div>
-          <p class="notice">After sign up, check your inbox and verify your email to log in.</p>
+          <p class="help">After sign up, check your inbox and verify your email.</p>
         </div>
       </div>
     </section>
 
+    <!-- APP -->
     <section id="app" class="hero hidden">
       <div class="row" style="margin-bottom:12px">
         <div class="tabs" id="app-tabs">
@@ -243,7 +223,7 @@
         <div class="tag" id="session-user">User</div>
       </div>
 
-      <!-- SCHEDULE TAB -->
+      <!-- SCHEDULE -->
       <div id="tab-schedule">
         <div class="two-col">
           <div class="panel">
@@ -279,7 +259,7 @@
         </div>
       </div>
 
-      <!-- INVENTORY TAB -->
+      <!-- INVENTORY -->
       <div id="tab-inventory" class="hidden">
         <div class="two-col">
           <div class="panel">
@@ -322,7 +302,7 @@
         </div>
       </div>
 
-      <!-- DATA TAB -->
+      <!-- DATA -->
       <div id="tab-data" class="hidden">
         <div class="two-col">
           <div class="panel">
@@ -346,36 +326,28 @@
     </section>
   </main>
 
-  <footer>
-    © <span id="year"></span> Artemis Skys. All rights reserved.
-  </footer>
+  <footer>© <span id="year"></span> Artemis Skys. All rights reserved.</footer>
 
-  <!-- ===== APP + AUTH (single module, consistent SDK versions) ===== -->
-  <script type="module">
-    /* ---------- Utilities & Local App (schedule/inventory) ---------- */
-    const $  = sel => document.querySelector(sel);
+  <!-- ========= App utilities and non-auth logic ========= -->
+  <script>
+    // Utilities
+    const $ = sel => document.querySelector(sel);
     const $$ = sel => [...document.querySelectorAll(sel)];
     const fmtDate = d => new Date(d).toLocaleString([], {year:'numeric', month:'short', day:'2-digit', hour:'2-digit', minute:'2-digit'});
-    const todayISO = () => new Date().toISOString().slice(0,10);
     const weekStartISO = () => {
       const d = new Date();
       const day = d.getDay(); // 0 Sun
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday start
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Monday as start
       const monday = new Date(d.setDate(diff));
       return monday.toISOString().slice(0,10);
-    };
-    const hash = async (str) => {
-      const enc = new TextEncoder().encode(str);
-      const buf = await crypto.subtle.digest('SHA-256', enc);
-      return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
     };
     const store = {
       get(k, fallback){ try{ return JSON.parse(localStorage.getItem(k) ?? JSON.stringify(fallback)); }catch{ return fallback } },
       set(k, v){ localStorage.setItem(k, JSON.stringify(v)); }
     };
-    const K = { users: 'as_users', session: 'as_session', employees: 'as_emps', shifts: 'as_shifts', inv: 'as_inv', log: 'as_inv_log' };
+    const K = { employees: 'as_emps', shifts: 'as_shifts', inv: 'as_inv', log: 'as_inv_log' };
 
-    // Section Nav
+    // Section nav
     function showSection(id){
       ['home','about','more','host','auth','app'].forEach(s=>{
         const el = document.getElementById(s);
@@ -384,10 +356,11 @@
       $$('nav a[data-nav]').forEach(a=>{
         const tgt = a.getAttribute('href').replace('#','');
         a.classList.toggle('active', tgt===id);
-      });
+      })
     }
-    window.showSection = showSection; // used in auth handlers
+    window.showSection = showSection;
 
+    // Landing buttons
     $('#go-home').onclick = ()=>showSection('home');
     $('#cta-learn').onclick = ()=>showSection('about');
     $('#cta-get-started').onclick = ()=>showSection('host');
@@ -424,8 +397,10 @@
       const name = $('#emp-name').value.trim();
       if(!name) return;
       const list = store.get(K.employees, []);
-      list.push(name); store.set(K.employees, list); $('#emp-name').value=''; refreshEmp(); refreshShiftOptions(); refreshWeek();
+      list.push(name); store.set(K.employees, list);
+      $('#emp-name').value=''; refreshEmp(); refreshShiftOptions(); refreshWeek();
     };
+
     function refreshShiftOptions(){
       const sel = $('#shift-emp'); sel.innerHTML='';
       store.get(K.employees, []).forEach(n=>{
@@ -435,7 +410,7 @@
 
     // Shifts
     $('#add-shift').onclick = ()=>{
-      const date=$('#shift-date').value||todayISO();
+      const date=$('#shift-date').value || new Date().toISOString().slice(0,10);
       const emp=$('#shift-emp').value; const start=$('#shift-start').value; const end=$('#shift-end').value;
       if(!emp||!start||!end) return alert('Pick employee, start and end time.');
       const shifts=store.get(K.shifts, []); shifts.push({date,emp,start,end}); store.set(K.shifts, shifts);
@@ -447,13 +422,12 @@
     function refreshWeek(){
       const start = new Date($('#week-start').value || weekStartISO());
       const days = [...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return d; });
-      const head = $('#week-head'); head.innerHTML='';
-      const htr = document.createElement('tr');
+      const head = $('#week-head'); head.innerHTML=''; const htr = document.createElement('tr');
       htr.innerHTML = '<th>Employee</th>' + days.map(d=>`<th>${d.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'})}</th>`).join('');
       head.appendChild(htr);
+
       const body = $('#week-body'); body.innerHTML='';
-      const emps = store.get(K.employees, []);
-      const shifts = store.get(K.shifts, []);
+      const emps = store.get(K.employees, []); const shifts = store.get(K.shifts, []);
       emps.forEach(emp=>{
         const tr = document.createElement('tr');
         const tds = days.map(d=>{
@@ -474,10 +448,8 @@
         const val = (it.qty||0) * (it.cost||0);
         const tr = document.createElement('tr');
         tr.innerHTML = `<td>${it.name}</td><td>${it.sku}</td><td>${it.qty}</td><td>${(it.cost??0).toFixed(2)}</td><td>${val.toFixed(2)}</td>
-        <td>
-          <button class="btn ghost small" data-edit="${i}">Edit</button>
-          <button class="btn secondary small" data-del="${i}">Delete</button>
-        </td>`;
+        <td><button class="btn ghost small" data-edit="${i}">Edit</button>
+            <button class="btn secondary small" data-del="${i}">Delete</button></td>`;
         tbody.appendChild(tr);
       });
       tbody.querySelectorAll('[data-del]').forEach(btn=>{
@@ -488,30 +460,6 @@
           $('#inv-name').value=it.name; $('#inv-sku').value=it.sku; $('#inv-qty').value=it.qty; $('#inv-cost').value=it.cost; };
       });
     }
-    $('#save-item').onclick = ()=>{
-      const name=$('#inv-name').value.trim(); const sku=$('#inv-sku').value.trim(); const qty=+($('#inv-qty').value||0); const cost=parseFloat($('#inv-cost').value||'0');
-      if(!name||!sku) return alert('Name and SKU required.');
-      const inv=store.get(K.inv, []);
-      const i=inv.findIndex(x=>x.sku===sku);
-      if(i>=0){ inv[i]={...inv[i], name, qty, cost}; } else { inv.push({name, sku, qty, cost}); }
-      store.set(K.inv, inv);
-      logLine(sku, 0, 'Saved item');
-      $('#inv-name').value=$('#inv-sku').value=$('#inv-qty').value=$('#inv-cost').value='';
-      refreshInv();
-    };
-    function adjust(sgn){
-      const sku=$('#adj-sku').value.trim(); const delta= Math.abs(+($('#adj-delta').value||0))*sgn;
-      if(!sku || !delta) return alert('Enter SKU and change amount.');
-      const inv=store.get(K.inv, []); const i = inv.findIndex(x=>x.sku===sku);
-      if(i<0) return alert('SKU not found.');
-      inv[i].qty = (inv[i].qty||0) + delta; store.set(K.inv, inv);
-      logLine(sku, delta, sgn>0? 'Receive' : 'Issue');
-      refreshInv();
-    }
-    $('#receive').onclick = ()=>adjust(+1);
-    $('#issue').onclick  = ()=>adjust(-1);
-
-    // Log + Data
     function logLine(sku, delta, note=''){ const log = store.get(K.log, []); log.unshift({ts:Date.now(), sku, delta, note}); store.set(K.log, log); refreshLog(); }
     function refreshLog(){
       const tbody = $('#log-table tbody'); tbody.innerHTML='';
@@ -521,16 +469,29 @@
         tbody.appendChild(tr);
       });
     }
-    $('#export-inv').onclick = ()=>{
-      const rows = [['Name','SKU','Qty','Unit Cost','Value']];
-      store.get(K.inv, []).forEach(it=> rows.push([it.name, it.sku, it.qty, (it.cost??0).toFixed(2), ((it.qty||0)*(it.cost||0)).toFixed(2)]));
-      const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
-      const blob = new Blob([csv], {type:'text/csv'});
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='inventory.csv'; a.click();
+    $('#save-item').onclick = ()=>{
+      const name=$('#inv-name').value.trim(); const sku=$('#inv-sku').value.trim();
+      const qty=+($('#inv-qty').value||0); const cost=parseFloat($('#inv-cost').value||'0');
+      if(!name||!sku) return alert('Name and SKU required.');
+      const inv=store.get(K.inv, []); const i=inv.findIndex(x=>x.sku===sku);
+      if(i>=0){ inv[i]={...inv[i], name, qty, cost}; } else { inv.push({name, sku, qty, cost}); }
+      store.set(K.inv, inv); logLine(sku, 0, 'Saved item');
+      $('#inv-name').value=$('#inv-sku').value=$('#inv-qty').value=$('#inv-cost').value=''; refreshInv();
     };
+    function adjust(sgn){
+      const sku=$('#adj-sku').value.trim(); const delta= Math.abs(+($('#adj-delta').value||0))*sgn;
+      if(!sku || !delta) return alert('Enter SKU and change amount.');
+      const inv=store.get(K.inv, []); const i = inv.findIndex(x=>x.sku===sku);
+      if(i<0) return alert('SKU not found.');
+      inv[i].qty = (inv[i].qty||0) + delta; store.set(K.inv, inv);
+      logLine(sku, delta, sgn>0? 'Receive' : 'Issue'); refreshInv();
+    }
+    $('#receive').onclick = ()=>adjust(+1);
+    $('#issue').onclick = ()=>adjust(-1);
+
+    // Data import/export
     $('#export-json').onclick = ()=>{
       const blob = new Blob([JSON.stringify({
-        users: store.get(K.users, []),
         employees: store.get(K.employees, []),
         shifts: store.get(K.shifts, []),
         inv: store.get(K.inv, []),
@@ -543,39 +504,51 @@
       const r = new FileReader(); r.onload = ()=>{
         try{
           const data = JSON.parse(r.result);
-          if(data.users)      store.set(K.users, data.users);
-          if(data.employees)  store.set(K.employees, data.employees);
-          if(data.shifts)     store.set(K.shifts, data.shifts);
-          if(data.inv)        store.set(K.inv, data.inv);
-          if(data.log)        store.set(K.log, data.log);
-          alert('Data imported.'); refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
+          if(data.employees) store.set(K.employees, data.employees);
+          if(data.shifts) store.set(K.shifts, data.shifts);
+          if(data.inv) store.set(K.inv, data.inv);
+          if(data.log) store.set(K.log, data.log);
+          alert('Data imported.');
+          refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
         }catch(err){ alert('Invalid JSON.'); }
       }; r.readAsText(file);
     };
+
+    $('#export-inv').onclick = ()=>{
+      const rows = [['Name','SKU','Qty','Unit Cost','Value']];
+      store.get(K.inv, []).forEach(it=> rows.push([it.name, it.sku, it.qty, (it.cost??0).toFixed(2), ((it.qty||0)*(it.cost||0)).toFixed(2)]));
+      const csv = rows.map(r=>r.map(x=>`"${String(x).replaceAll('"','""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], {type:'text/csv'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='inventory.csv'; a.click();
+    };
+
     $('#wipe').onclick = ()=>{
       if(!confirm('Wipe all Artemis Skys data from this browser?')) return;
-      [K.users,K.session,K.employees,K.shifts,K.inv,K.log].forEach(k=>localStorage.removeItem(k));
+      [K.employees,K.shifts,K.inv,K.log].forEach(k=>localStorage.removeItem(k));
       location.reload();
     };
 
     document.getElementById('year').textContent = new Date().getFullYear();
-    showSection('home'); // initial
+    refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
+    showSection('home');
+  </script>
 
-    /* ---------- Firebase (Email/Password + verify + forgot) ---------- */
+  <!-- ========= Firebase (Auth + verification + forgot) ========= -->
+  <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
-    import { getAnalytics }   from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
     import {
       getAuth,
+      onAuthStateChanged,
       createUserWithEmailAndPassword,
       signInWithEmailAndPassword,
       sendEmailVerification,
       sendPasswordResetEmail,
       applyActionCode,
-      onAuthStateChanged,
       signOut
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
 
-    // Your Firebase config (public web keys are safe to expose)
+    // ---- Your Firebase config ----
     const firebaseConfig = {
       apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
       authDomain: "artemisskys-81c8d.firebaseapp.com",
@@ -586,105 +559,135 @@
       measurementId: "G-DY343FNTFS"
     };
 
-    const appFB   = initializeApp(firebaseConfig);
-    getAnalytics(appFB);
-    const auth = getAuth(appFB);
+    const app = initializeApp(firebaseConfig);
+    try { getAnalytics(app); } catch {} // analytics optional
+    const auth = getAuth(app);
 
-    // Auth UI helpers
+    // Buttons / inputs
+    const btnLogin = document.getElementById('btn-login');
+    const btnSignup = document.getElementById('btn-signup');
+    const doLogin  = document.getElementById('do-login');
+    const doSignup = document.getElementById('do-signup');
+    const btnLogout = document.getElementById('btn-logout');
+    const forgotBtn = document.getElementById('forgot-pass');
+    const resendBtn = document.getElementById('resend-verify');
+
+    // UI toggle based on auth state
     function refreshAuthUI(){
-      const u = auth.currentUser;
-      const authed = !!u && !!u.email;
-      $('#auth-buttons').classList.toggle('hidden', authed);
-      $('#user-badge').classList.toggle('hidden', !authed);
-      if(authed){
-        $('#whoami').textContent = u.email + (u.emailVerified ? '' : ' (unverified)');
-        $('#session-user').textContent = u.email;
+      const user = auth.currentUser;
+      const authed = !!user && !!user.email;
+      document.getElementById('auth-buttons').classList.toggle('hidden', authed);
+      document.getElementById('user-badge').classList.toggle('hidden', !authed);
+      if (authed) {
+        const verified = user.emailVerified;
+        document.getElementById('whoami').textContent = user.email + (verified ? '' : ' (unverified)');
+        document.getElementById('session-user').textContent = user.email;
+        resendBtn.classList.toggle('hidden', verified); // show resend when NOT verified
+        if (verified) {
+          window.showSection('app');
+        } else {
+          // keep them in auth page to prompt verification
+          window.showSection('auth');
+        }
+      } else {
+        window.showSection('home');
       }
     }
-    window.refreshAuthUI = refreshAuthUI; // used by listeners
+    window.refreshAuthUI = refreshAuthUI;
 
-    const btnLogin  = $('#btn-login');
-    const btnSignup = $('#btn-signup');
-    const doLogin   = $('#do-login');
-    const doSignup  = $('#do-signup');
-    const btnLogout = $('#btn-logout');
-    const forgotBtn = $('#forgot-pass');
+    // Clicks to show auth section
+    btnLogin.onclick = ()=>{ window.showSection('auth'); document.getElementById('login-email').focus(); };
+    btnSignup.onclick = ()=>{ window.showSection('auth'); document.getElementById('su-name').focus(); };
 
-    btnLogin.onclick  = ()=>{ showSection('auth'); $('#login-email').focus(); };
-    btnSignup.onclick = ()=>{ showSection('auth'); $('#su-name').focus(); };
-
-    // Sign up (send verify email)
-    doSignup.onclick = async ()=>{
-      const name = $('#su-name').value.trim();
-      const email= $('#su-email').value.trim();
-      const pass = $('#su-pass').value;
-      if(!name || !email || pass.length<6){ alert('Please fill all fields (password ≥ 6).'); return; }
+    // Sign up + verification
+    doSignup.onclick = async () => {
+      const name = document.getElementById('su-name').value.trim();
+      const email = document.getElementById('su-email').value.trim();
+      const pass  = document.getElementById('su-pass').value;
+      if(!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
       try{
         const { user } = await createUserWithEmailAndPassword(auth, email, pass);
-        await sendEmailVerification(user, { url: location.origin + location.pathname });
+        await sendEmailVerification(user, { url: "https://artemisskys.com/" });
         alert('Account created. Check your email for a verification link.');
       }catch(e){
-        console.error(e); alert(e?.message || 'Sign up failed');
+        console.error(e);
+        alert((e && e.message) || 'Sign up failed');
       }
     };
 
-    // Login (require verified)
-    doLogin.onclick = async ()=>{
-      const email= $('#login-email').value.trim();
-      const pass = $('#login-pass').value;
+    // Login (requires verified email)
+    doLogin.onclick = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const pass  = document.getElementById('login-pass').value;
       try{
         const { user } = await signInWithEmailAndPassword(auth, email, pass);
-        if(!user.emailVerified){ alert('Please verify your email first.'); return; }
+        if(!user.emailVerified){
+          alert('Please verify your email first. We sent you a link when you signed up.');
+        }
         refreshAuthUI();
-        showSection('app');
-        refreshWeek(); refreshEmp(); refreshShiftOptions(); refreshInv(); refreshLog();
       }catch(e){
-        console.error(e); alert(e?.message || 'Login failed');
+        console.error(e);
+        alert((e && e.message) || 'Login failed');
       }
     };
 
     // Forgot password
-    forgotBtn.onclick = async ()=>{
-      let email = $('#login-email').value.trim();
-      if(!email) email = prompt('Enter the email on your account:')?.trim() || '';
-      if(!email) return;
+    forgotBtn.onclick = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      if(!email) return alert('Enter your email first.');
       try{
-        await sendPasswordResetEmail(auth, email, { url: location.origin + location.pathname });
-        alert(`Password reset email sent to ${email}. Check your inbox (and spam).`);
+        await sendPasswordResetEmail(auth, email, { url: "https://artemisskys.com/" });
+        alert('Password reset email sent. Check your inbox.');
       }catch(e){
         console.error(e);
-        const msg = (e?.code==='auth/user-not-found')
-          ? 'No account with that email.'
-          : (e?.message || 'Could not send reset email.');
-        alert(msg);
+        alert((e && e.message) || 'Failed to send reset email.');
+      }
+    };
+
+    // Resend verification
+    resendBtn.onclick = async () => {
+      const user = auth.currentUser;
+      if(!user) return alert('Please log in first.');
+      try{
+        await sendEmailVerification(user, { url: "https://artemisskys.com/" });
+        alert('Verification email sent. Check your inbox (and Spam).');
+      }catch(e){
+        console.error(e);
+        alert((e && e.message) || 'Failed to send verification email.');
       }
     };
 
     // Logout
-    btnLogout.onclick = async ()=>{ await signOut(auth); refreshAuthUI(); showSection('home'); };
+    btnLogout.onclick = async ()=>{
+      await signOut(auth);
+      refreshAuthUI();
+      window.showSection('home');
+    };
 
-    // Handle verifyEmail action links (when user opens this page from email)
-    const q = new URLSearchParams(location.search);
-    (async ()=>{
-      const mode   = q.get('mode');
-      const oobCode= q.get('oobCode');
-      if(mode==='verifyEmail' && oobCode){
-        try{
+    // Handle email-verification links (?mode=verifyEmail&oobCode=...)
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const mode = params.get('mode');
+      const oobCode = params.get('oobCode');
+      if (mode === 'verifyEmail' && oobCode) {
+        try {
           await applyActionCode(auth, oobCode);
           alert('Email verified! You can now log in.');
+          history.replaceState({}, '', location.pathname); // strip params
+          refreshAuthUI();
+        } catch (e) {
+          console.error('verifyEmail failed', e);
+          alert('This verification link is invalid or expired. Please log in and click "Resend verification".');
           history.replaceState({}, '', location.pathname);
-        }catch(e){
-          console.error(e); alert('Verification link is invalid or expired.');
         }
       }
     })();
 
-    // React to auth state changes
-    onAuthStateChanged(auth, ()=> refreshAuthUI());
-
-    // Prime UI
-    refreshAuthUI();
-    refreshEmp(); refreshShiftOptions(); refreshWeek(); refreshInv(); refreshLog();
+    // React to auth changes
+    onAuthStateChanged(auth, ()=>{
+      refreshAuthUI();
+    });
   </script>
 </body>
 </html>
+
