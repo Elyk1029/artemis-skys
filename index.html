@@ -345,6 +345,52 @@
   <footer>© <span id="year"></span> Artemis Skys. All rights reserved.</footer>
 
   
+  
+  <!-- ===== Global Enter handlers + early login/signup (before Firebase) ===== -->
+  <script>
+    (function(){
+      function queueLogin(){
+        try {
+          const email = document.getElementById('login-email')?.value?.trim() || '';
+          const pass  = document.getElementById('login-pass')?.value || '';
+          if (window._doLogin) { window._doLogin(email, pass); }
+          else { window._pendingLogin = { email, pass }; }
+        } catch {}
+      }
+      function queueSignup(){
+        try {
+          const name  = document.getElementById('su-name')?.value?.trim() || '';
+          const email = document.getElementById('su-email')?.value?.trim() || '';
+          const pass  = document.getElementById('su-pass')?.value || '';
+          if (window._doSignup) { window._doSignup(name, email, pass); }
+          else { window._pendingSignup = { name, email, pass }; }
+        } catch {}
+      }
+      function onEnter(e){
+        if (e.key !== 'Enter') return;
+        const active = document.activeElement;
+        const inAuth = active?.closest && active.closest('#auth');
+        if (!inAuth) return;
+        e.preventDefault();
+        const id = active?.id || '';
+        if (id.startsWith('su-')) queueSignup();
+        else queueLogin();
+      }
+      // Button fallbacks
+      const loginBtn  = document.getElementById('do-login');
+      const signupBtn = document.getElementById('do-signup');
+      if (loginBtn)  loginBtn.addEventListener('click', (e)=>{ e.preventDefault(); queueLogin(); });
+      if (signupBtn) signupBtn.addEventListener('click', (e)=>{ e.preventDefault(); queueSignup(); });
+      // Field-level Enter fallback
+      ['login-email','login-pass','su-name','su-email','su-pass'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('keydown', onEnter);
+      });
+      // Document-level catch-all
+      document.addEventListener('keydown', onEnter, true);
+    })();
+  </script>
+
   <!-- ===== Fallback auth openers (run before Firebase JS) ===== -->
   <script>
     // Ensure the header "Log in" and "Sign up" buttons always open the auth panel,
@@ -707,21 +753,34 @@
     btnLogin.onclick = ()=>{ window.showSection('auth'); document.getElementById('login-email').focus(); };
     btnSignup.onclick = ()=>{ window.showSection('auth'); document.getElementById('su-name').focus(); };
 
-    // Sign up (admin)
-    doSignup.onclick = async () => {
-      const name = document.getElementById('su-name').value.trim();
-      const email = document.getElementById('su-email').value.trim();
-      const pass  = document.getElementById('su-pass').value;
-      if(!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
-      try{
-        const { user } = await createUserWithEmailAndPassword(auth, email, pass);
-        await setDoc(doc(db,'profiles', user.uid), { name, email, role:'admin', orgOwner:user.uid, createdAt: serverTimestamp() }, {merge:true});
-        // create org doc so branding can be saved
-        await setDoc(doc(db, `orgs/${user.uid}`), { brandName: 'Artemis Skys', createdAt: serverTimestamp() }, { merge:true });
-        await sendEmailVerification(user, actionCodeSettings);
-        alert('Account created. Check your email for a verification link.');
-      }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
-    };
+    
+// Sign up (admin) centralized + Enter support
+window._doSignup = async (nameArg, emailArg, passArg) => {
+  const name  = (nameArg  ?? document.getElementById('su-name')?.value || '').trim();
+  const email = (emailArg ?? document.getElementById('su-email')?.value || '').trim();
+  const pass  = (passArg  ?? document.getElementById('su-pass')?.value || '');
+  if (!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
+  try{
+    const { user } = await createUserWithEmailAndPassword(auth, email, pass);
+    await setDoc(doc(db,'profiles', user.uid), { name, email, role:'admin', orgOwner:user.uid, createdAt: serverTimestamp() }, {merge:true});
+    await setDoc(doc(db, `orgs/${user.uid}`), { brandName: 'Artemis Skys', createdAt: serverTimestamp() }, { merge:true });
+    await sendEmailVerification(user, actionCodeSettings);
+    alert('Account created. Check your email for a verification link.');
+    refreshAuthUI();
+  }catch(e){ console.error(e); alert(e.message || 'Sign up failed'); }
+};
+doSignup.onclick = (e)=>{ e.preventDefault(); window._doSignup(); };
+['su-name','su-email','su-pass'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('keydown', (ev)=>{ if (ev.key === 'Enter'){ ev.preventDefault(); window._doSignup(); } });
+});
+// Run any queued signup captured before Firebase loaded
+if (window._pendingSignup) {
+  const { name, email, pass } = window._pendingSignup;
+  try { delete window._pendingSignup; } catch {}
+  setTimeout(()=> window._doSignup(name, email, pass), 0);
+}
+
 
     
 // Login (email/password) with centralized function + Enter key support
