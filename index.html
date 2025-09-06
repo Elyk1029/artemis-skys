@@ -211,6 +211,21 @@
       </div>
     </section>
 
+    <!-- RESET PASSWORD (shown when clicking email link with mode=resetPassword) -->
+    <section id="reset" class="hero hidden">
+      <div class="panel">
+        <h3>Reset your password</h3>
+        <p class="help">For: <strong id="rp-email">your email</strong></p>
+        <div class="field"><label>New password</label><input id="rp-pass1" type="password" placeholder="At least 6 characters"/></div>
+        <div class="field"><label>Confirm password</label><input id="rp-pass2" type="password" placeholder="Repeat password"/></div>
+        <div class="row right" style="gap:8px">
+          <button class="btn secondary" id="rp-cancel">Cancel</button>
+          <button class="btn" id="rp-submit">Set New Password</button>
+        </div>
+        <p class="help">If this link is invalid or expired, go back to Log in and click “Forgot password” again.</p>
+      </div>
+    </section>
+
     <!-- APP -->
     <section id="app" class="hero hidden">
       <div class="row" style="margin-bottom:12px">
@@ -349,7 +364,7 @@
 
     // Section nav
     function showSection(id){
-      ['home','about','more','host','auth','app'].forEach(s=>{
+      ['home','about','more','host','auth','reset','app'].forEach(s=>{
         const el = document.getElementById(s);
         if(!el) return; el.classList.toggle('hidden', s!==id);
       });
@@ -544,6 +559,8 @@
       sendEmailVerification,
       sendPasswordResetEmail,
       applyActionCode,
+      verifyPasswordResetCode,
+      confirmPasswordReset,
       signOut
     } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-analytics.js";
@@ -553,7 +570,8 @@
       apiKey: "AIzaSyA1kAD-jLJ7UqoTNoDQomI-NhXqusey2Mk",
       authDomain: "artemisskys-81c8d.firebaseapp.com",
       projectId: "artemisskys-81c8d",
-      storageBucket: "artemisskys-81c8d.firebasestorage.app",
+      // storageBucket should be the bucket name, not a URL. (Not used here, but keeping it correct.)
+      storageBucket: "artemisskys-81c8d.appspot.com",
       messagingSenderId: "1048827230936",
       appId: "1:1048827230936:web:b0e70cce57c867a23635ad",
       measurementId: "G-DY343FNTFS"
@@ -562,6 +580,15 @@
     const app = initializeApp(firebaseConfig);
     try { getAnalytics(app); } catch {} // analytics optional
     const auth = getAuth(app);
+    // Optional: localize emails
+    // auth.languageCode = 'en';
+
+    // Reusable action code settings for in-app handling
+    const actionCodeSettings = {
+      url: "https://artemisskys.com/",
+      handleCodeInApp: true
+      // dynamicLinkDomain: "YOUR_DYNAMIC_LINK.page.link" // Only for iOS/Android deep links
+    };
 
     // Buttons / inputs
     const btnLogin = document.getElementById('btn-login');
@@ -573,12 +600,13 @@
     const resendBtn = document.getElementById('resend-verify');
 
     // UI toggle based on auth state
-    function refreshAuthUI(){
+    async function refreshAuthUI(){
       const user = auth.currentUser;
       const authed = !!user && !!user.email;
       document.getElementById('auth-buttons').classList.toggle('hidden', authed);
       document.getElementById('user-badge').classList.toggle('hidden', !authed);
       if (authed) {
+        await user.reload?.();
         const verified = user.emailVerified;
         document.getElementById('whoami').textContent = user.email + (verified ? '' : ' (unverified)');
         document.getElementById('session-user').textContent = user.email;
@@ -599,7 +627,7 @@
     btnLogin.onclick = ()=>{ window.showSection('auth'); document.getElementById('login-email').focus(); };
     btnSignup.onclick = ()=>{ window.showSection('auth'); document.getElementById('su-name').focus(); };
 
-    // Sign up + verification
+    // Sign up + verification (now handled in-app)
     doSignup.onclick = async () => {
       const name = document.getElementById('su-name').value.trim();
       const email = document.getElementById('su-email').value.trim();
@@ -607,7 +635,7 @@
       if(!name || !email || pass.length < 6){ alert('Please fill all fields (password ≥ 6).'); return; }
       try{
         const { user } = await createUserWithEmailAndPassword(auth, email, pass);
-        await sendEmailVerification(user, { url: "https://artemisskys.com/" });
+        await sendEmailVerification(user, actionCodeSettings);
         alert('Account created. Check your email for a verification link.');
       }catch(e){
         console.error(e);
@@ -631,12 +659,12 @@
       }
     };
 
-    // Forgot password
+    // Forgot password (now handled in-app)
     forgotBtn.onclick = async () => {
       const email = document.getElementById('login-email').value.trim();
       if(!email) return alert('Enter your email first.');
       try{
-        await sendPasswordResetEmail(auth, email, { url: "https://artemisskys.com/" });
+        await sendPasswordResetEmail(auth, email, actionCodeSettings);
         alert('Password reset email sent. Check your inbox.');
       }catch(e){
         console.error(e);
@@ -649,7 +677,7 @@
       const user = auth.currentUser;
       if(!user) return alert('Please log in first.');
       try{
-        await sendEmailVerification(user, { url: "https://artemisskys.com/" });
+        await sendEmailVerification(user, actionCodeSettings);
         alert('Verification email sent. Check your inbox (and Spam).');
       }catch(e){
         console.error(e);
@@ -664,24 +692,63 @@
       window.showSection('home');
     };
 
-    // Handle email-verification links (?mode=verifyEmail&oobCode=...)
+    // Handle email action links (?mode=verifyEmail|resetPassword & oobCode=...)
     (async () => {
       const params = new URLSearchParams(location.search);
       const mode = params.get('mode');
       const oobCode = params.get('oobCode');
-      if (mode === 'verifyEmail' && oobCode) {
+
+      if (!mode || !oobCode) return;
+
+      if (mode === 'verifyEmail') {
         try {
           await applyActionCode(auth, oobCode);
           alert('Email verified! You can now log in.');
-          history.replaceState({}, '', location.pathname); // strip params
-          refreshAuthUI();
         } catch (e) {
           console.error('verifyEmail failed', e);
           alert('This verification link is invalid or expired. Please log in and click "Resend verification".');
+        } finally {
+          history.replaceState({}, '', location.pathname); // strip params
+          refreshAuthUI();
+        }
+      }
+
+      if (mode === 'resetPassword') {
+        try {
+          const email = await verifyPasswordResetCode(auth, oobCode);
+          // Show reset UI
+          document.getElementById('rp-email').textContent = email;
+          window._rpCode = oobCode;
+          window.showSection('reset');
+        } catch (e) {
+          console.error('resetPassword link invalid', e);
+          alert('This password reset link is invalid or expired. Please request a new one from the Log in page.');
           history.replaceState({}, '', location.pathname);
+          window.showSection('auth');
         }
       }
     })();
+
+    // Reset password handlers
+    document.getElementById('rp-cancel').onclick = ()=>{
+      history.replaceState({}, '', location.pathname);
+      window.showSection('auth');
+    };
+    document.getElementById('rp-submit').onclick = async ()=>{
+      const p1 = document.getElementById('rp-pass1').value;
+      const p2 = document.getElementById('rp-pass2').value;
+      if (p1.length < 6) return alert('Password must be at least 6 characters.');
+      if (p1 !== p2)   return alert('Passwords do not match.');
+      try {
+        await confirmPasswordReset(auth, window._rpCode, p1);
+        alert('Password updated. You can now log in.');
+        history.replaceState({}, '', location.pathname);
+        window.showSection('auth');
+      } catch (e) {
+        console.error('confirmPasswordReset failed', e);
+        alert('Could not update password. Try requesting a new reset email.');
+      }
+    };
 
     // React to auth changes
     onAuthStateChanged(auth, ()=>{
